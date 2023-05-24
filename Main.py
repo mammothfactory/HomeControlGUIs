@@ -1,8 +1,10 @@
 from nicegui import ui
 from datetime import datetime
 
-
 isDarkModeOn = False
+RUN_ON_NATIVE_OS = True
+TUNNEL_TO_INTERNET = True
+
 
 def toggle_dark_mode():
     global isDarkModeOn
@@ -44,4 +46,10 @@ if __name__ in {"__main__", "__mp_main__"}:
        with ui.button('Click to check door bell camera recordings', on_click=lambda: badge.set_text(int(badge.text) + 1)):
            badge = ui.badge('0', color='red').props('floating')
 
-    ui.run(native=True)
+
+    if TUNNEL_TO_INTERNET:
+        # Use http://localhost.run
+        ui.run(native=False)
+    else:
+        ui.run(native=RUN_ON_NATIVE_OS)
+
