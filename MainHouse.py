@@ -50,8 +50,7 @@ if __name__ in {"__main__", "__mp_main__"}:
     
     ui.colors(primary=MAMMOTH_BRIGHT_GRREN)
     
-    src = 'https://picsum.photos/id/565/640/360' #'https://github.com/OpenSourceIronman/Automation/blob/main/King_Requirement_App/LiteHouseTopViewDrawing.jpeg'
-
+    src = 'https://github.com/mammothfactory/LitehouseGUIs/blob/7eb96631ffe8d0517fca93f381ffaab5750004dd/LiteHouseTopViewDrawing.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
     
     with ui.header().classes(replace='row items-center') as header:
         ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')
