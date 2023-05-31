@@ -11,63 +11,72 @@ __doc__        = "Generate 3 page GUI to cross check requirements to lab test an
 """
 # https://www.analyticsvidhya.com/blog/2023/05/elevate-your-python-apps-with-nicegui-the-ultimate-gui-framework/
 
-
-from nicegui import app, ui
 from typing import Dict
 from datetime import datetime
 
-from nicegui.events import MouseEventArguments
+import GlobalConstants as GC
+
+try:  # Importing externally developed libraries
+
+    # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
+    # https://github.com/supabase-community/supabase-py
+    from supabase import create_client, Client   #TODO REMOVE?, execute
+    from nicegui import app, ui
+    from nicegui.events import MouseEventArguments
+
+except ImportError:
+    print("ERROR: The supabase python module didn't import correctly!")
+    executeInstalls = input("Would you like me to *** pip3 install supabase *** for you (Y/N)? ")
+    if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
+        check_call("sudo apt install python3-pip", shell=True)
+        check_call("pip3 install supabase", shell=True)
+    else:
+        print("You didn't type Y or YES :)")
+        print("Follow supabase manual install instructions at https://pypi.org/project/supabase/")
+
 
 #import cv2
 
-
-isDarkModeOn = False 
+# Global Variables
+isDarkModeOn = True
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-MASTER_BEDROOM_X = [1770]           # X pixel location of upper left corner
-MASTER_BEDROOM_Y = [245]
-MASTER_BEDROOM_X_WIDTH = [505]   
-MASTER_BEDROOM_Y_HEIGHT = [580]
-MASTER_BEDROOM = [MASTER_BEDROOM_X, MASTER_BEDROOM_Y, MASTER_BEDROOM_X_WIDTH, MASTER_BEDROOM_Y_HEIGHT]
 masterBedroomLightsOn = True
-
-BATHROOM_X = [1365]           # X pixel location of upper left corner
-BATHROOM_Y = [410]
-BATHROOM_X_WIDTH = [368]   
-BATHROOM_Y_HEIGHT = [392]
 bathroomLightsOn = True
-
-MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
-
+homeName = 'Casa'
+homeAddress = '407 E Central Blvd, Orlando, FL 32801'
+pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'.  #TODO
 tabNames = ['lights', 'cameras', 'doors', 'network']
+
+# Create directory and URL for local storage of images
 app.add_static_files('/static/images', 'static/images')
-
+src = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
+    
 # necessary until we improve native support for tabs (https://github.com/zauberzeug/nicegui/issues/251)
-
 
 def toggle_dark_mode():
     global isDarkModeOn
+    
     if isDarkModeOn:
-        darkMode.disable()
-        isDarkModeOn = not isDarkModeOn 
+        darkMode.disable(): 
     else:
         darkMode.enable()
-        isDarkModeOn = not isDarkModeOn 
+        
+    isDarkModeOn = not isDarkModeOn 
 
 def switch_tab(msg: Dict) -> None:
     name = msg['args']
     tabs.props(f'model-value={name}')
     panels.props(f'model-value={name}')
     
-
 def mouse_handler(e: MouseEventArguments):
     global masterBedroomLightsOn 
     global bathroomLightsOn 
     
-    for areaIndex in range(len(MASTER_BEDROOM_X)):    
-        if MASTER_BEDROOM_X[areaIndex] <= e.image_x <= MASTER_BEDROOM_X[areaIndex] + MASTER_BEDROOM_X_WIDTH[areaIndex] and \
-           MASTER_BEDROOM_Y[areaIndex] <= e.image_y <= MASTER_BEDROOM_Y[areaIndex] + MASTER_BEDROOM_Y_HEIGHT[areaIndex]:
+    for areaIndex in range(ROOM_DEFINITION)):    
+        if GC.MASTER_BEDROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BEDROOM_X[areaIndex] + GC.MASTER_BEDROOM_X_WIDTH[areaIndex] and \
+           GC.MASTER_BEDROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BEDROOM_Y[areaIndex] + GC.MASTER_BEDROOM_Y_HEIGHT[areaIndex]:
             
             
             masterBedroomLightsOn = not masterBedroomLightsOn
@@ -76,10 +85,10 @@ def mouse_handler(e: MouseEventArguments):
             else:
                 ui.notify(message='Turning Master Bedroom lights OFF')
             
-            draw_light_highlight(e.image_x, e.image_y,masterBedroomLightsOn)
+            draw_light_highlight(e.image_x, e.image_y, masterBedroomLightsOn)
             
-        elif BATHROOM_X[areaIndex] <= e.image_x <= BATHROOM_X[areaIndex] + BATHROOM_X_WIDTH[areaIndex] and \
-           BATHROOM_Y[areaIndex] <= e.image_y <= BATHROOM_Y[areaIndex] + BATHROOM_Y_HEIGHT[areaIndex]:
+        elif GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
+           GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
             
             bathroomLightsOn = not bathroomLightsOn
             if bathroomLightsOn:
@@ -87,30 +96,31 @@ def mouse_handler(e: MouseEventArguments):
             else:
                 ui.notify(message='Turning Bathroom lights OFF')
             
-            draw_light_highlight(e.image_x, e.image_y, bathroomLightsOn)
+            draw_light_highlight(e.image_x, e.image_y, bathroomLightsOn, MASTER_BATHROOM)
             
         else:
             print("Clicked outside Master Bedroom and Bathroom areas")
             ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
 
 """"""
-def draw_light_highlight(xPos, yPos):
+def draw_light_highlight(xPos, yPos, roomName):
 
+    if roomName == MASTER_BEDROOM:
+        pass
+    elif roomName == MASTER_BATHROOM:
+        pass
     ui.html(f'''
             <svg viewBox="0 0 960 638" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <circle cx="{xPos}" cy="{yPos}" r="100" fill="yellow" stroke="red" stroke-width="20" />
             </svg>
     ''').classes('bg-transparent')
 """"""
+
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode = ui.dark_mode()
-    darkMode.disable()
-    homeName = 'My Casa'
+    darkMode.enable()
     
-    ui.colors(primary=MAMMOTH_BRIGHT_GRREN)
-    
-    
-    src = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
+    ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
     with ui.header().classes(replace='row items-center') as header:
         ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')
@@ -128,7 +138,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             ui.label(homeName).style('gap: 10px')
         
             ui.label('Home Address:').tailwind.font_weight('extrabold').text_color('green-900')
-            ui.label("407 E Central Blvd, Orlando, FL 32801")
+            ui.label(homeAddress)
  
             ui.label('Home GPS:').tailwind.font_weight('extrabold').text_color('green-900')
             ui.label("28.54250516114, -81.372488625")
