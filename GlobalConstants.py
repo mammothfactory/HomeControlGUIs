@@ -1,6 +1,8 @@
 
 ROOM_DEFINITION = 4
 
+HOME_DIRECTORY = '/Users/mars/'     # TODO Switch from MacOS to ZimaBaord file directory structure
+
 MASTER_BEDROOM = "MASTER_BEDROOM"
 MASTER_BEDROOM_X = [1770]           # X pixel location of upper left corner
 MASTER_BEDROOM_Y = [245]
@@ -19,5 +21,5 @@ MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
 
 class GlobalConstants:
 
-    if __nanme__ == "__main__":
+    if __name__ == "__main__":
         print("Using GlobalConstants.py")

@@ -13,6 +13,9 @@ __doc__        = "Generate 3 page GUI to cross check requirements to lab test an
 
 from typing import Dict
 
+from nicegui import app, ui
+from nicegui.events import MouseEventArguments
+
 from datetime import datetime
 import subprocess
 
@@ -22,16 +25,16 @@ try:  # Importing externally developed libraries
 
     # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
     # https://github.com/supabase-community/supabase-py
+    #import supabase
     from supabase import create_client, Client   #TODO REMOVE?, execute
-    from nicegui import app, ui
-    from nicegui.events import MouseEventArguments
+
 
 except ImportError:
     print("ERROR: The supabase python module didn't import correctly!")
-    executeInstalls = input("Would you like me to *** pip3 install supabase *** for you (Y/N)? ")
+    executeInstalls = input("Would you like me to *** pip install supabase-py *** for you (Y/N)? ")
     if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
-        check_call("sudo apt install python3-pip", shell=True)
-        check_call("pip3 install supabase", shell=True)
+        subprocess.call(['sudo', 'apt', 'install', 'python3-pip'])
+        subprocess.call(['pip3', 'install', 'supabase',])
     else:
         print("You didn't type Y or YES :)")
         print("Follow supabase manual install instructions at https://pypi.org/project/supabase/")
@@ -40,15 +43,15 @@ except ImportError:
 #import cv2
 
 # Global Variables
-isDarkModeOn = True
+isDarkModeOn = False
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
 masterBedroomLightsOn = True
 bathroomLightsOn = True
-homeName = 'Casa'
+homeName = 'mammothlitehouse'
 homeAddress = '407 E Central Blvd, Orlando, FL 32801'
-pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'.  #TODO
+pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'  #TODO
 tabNames = ['lights', 'cameras', 'doors', 'network']
 
 # Create directory and URL for local storage of images
@@ -61,11 +64,19 @@ def toggle_dark_mode():
     global isDarkModeOn
     
     if isDarkModeOn:
-        darkMode.disable(): 
+        darkMode.disable()
     else:
         darkMode.enable()
         
-    isDarkModeOn = not isDarkModeOn 
+    isDarkModeOn = not isDarkModeOn
+    
+def csv_to_List(col, csv_file=GC.HOME_DIRECTORY+'TODO.csv'):
+    result = []
+    with open(csv_file, 'r') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            result.append(row[col])  # Append only the first column
+    return result
 
 def switch_tab(msg: Dict) -> None:
     name = msg['args']
@@ -76,7 +87,7 @@ def mouse_handler(e: MouseEventArguments):
     global masterBedroomLightsOn 
     global bathroomLightsOn 
     
-    for areaIndex in range(ROOM_DEFINITION)):    
+    for areaIndex in range(GC.ROOM_DEFINITION):    
         if GC.MASTER_BEDROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BEDROOM_X[areaIndex] + GC.MASTER_BEDROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BEDROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BEDROOM_Y[areaIndex] + GC.MASTER_BEDROOM_Y_HEIGHT[areaIndex]:
             
@@ -98,7 +109,7 @@ def mouse_handler(e: MouseEventArguments):
             else:
                 ui.notify(message='Turning Bathroom lights OFF')
             
-            draw_light_highlight(e.image_x, e.image_y, bathroomLightsOn, MASTER_BATHROOM)
+            draw_light_highlight(e.image_x, e.image_y, bathroomLightsOn, GC.MASTER_BATHROOM)
             
         else:
             print("Clicked outside Master Bedroom and Bathroom areas")
@@ -107,9 +118,9 @@ def mouse_handler(e: MouseEventArguments):
 """"""
 def draw_light_highlight(xPos, yPos, roomName):
 
-    if roomName == MASTER_BEDROOM:
+    if roomName == GC.MASTER_BEDROOM:
         pass
-    elif roomName == MASTER_BATHROOM:
+    elif roomName == GC.MASTER_BATHROOM:
         pass
     ui.html(f'''
             <svg viewBox="0 0 960 638" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -118,10 +129,38 @@ def draw_light_highlight(xPos, yPos, roomName):
     ''').classes('bg-transparent')
 """"""
 
+def draw_signin_with_appple_button():
+    #https://developer.apple.com/documentation/sign_in_with_apple/displaying_sign_in_with_apple_buttons_on_the_webn
+    
+    ui.html(f'''
+            <html>
+    <head>
+        <meta name="appleid-signin-client-id" content="[CLIENT_ID]">
+        <meta name="appleid-signin-scope" content="[SCOPES]">
+        <meta name="appleid-signin-redirect-uri" content="[REDIRECT_URI]">
+        <meta name="appleid-signin-state" content="[STATE]">
+    </head>
+    <style>
+        .signin-button {
+            width: 210px;
+            height: 40px;
+        }
+    </style>
+    <body>
+        <div id="appleid-signin" class="signin-button" data-color="black" data-border="true" data-type="sign-in"></div>
+        <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
+    </body>
+</html>
+            
+            ''')
+
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode = ui.dark_mode()
     darkMode.disable()
-    homeName = 'MammothLitehouse'
+    
+    url: str = os.environ.get(SUPABASE_URL)
+    key: str = os.environ.get(SUPABASE_KEY)
+    client = supabase.create_client(url, key)
     
     
     #curl -O https://pagekite.net/pk/pagekite.py    -> subprocess.call(['curl', '-O', 'https://pagekite.net/pk/pagekite.py'])
