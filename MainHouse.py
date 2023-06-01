@@ -12,7 +12,9 @@ __doc__        = "Generate 3 page GUI to cross check requirements to lab test an
 # https://www.analyticsvidhya.com/blog/2023/05/elevate-your-python-apps-with-nicegui-the-ultimate-gui-framework/
 
 from typing import Dict
+
 from datetime import datetime
+import subprocess
 
 import GlobalConstants as GC
 
@@ -118,7 +120,12 @@ def draw_light_highlight(xPos, yPos, roomName):
 
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode = ui.dark_mode()
-    darkMode.enable()
+    darkMode.disable()
+    homeName = 'MammothLitehouse'
+    
+    
+    #curl -O https://pagekite.net/pk/pagekite.py    -> subprocess.call(['curl', '-O', 'https://pagekite.net/pk/pagekite.py'])
+    #python3 pagekite.py 8080 yourname.pagekite.me  -> f'python3 pagekite.py 8080 {homeName}.pagekite.me' -> subprocess.call(['python3', 'pagekite.py', '8080', f'{homeName}.pagekite.me'])
     
     ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
