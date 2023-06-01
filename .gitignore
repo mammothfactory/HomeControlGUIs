@@ -1,6 +1,6 @@
 .env
 .pyc
 Test.py
-LiteHouse_VENV/
+/LiteHouse_VENV
 .DS_Store
 __pycache__/
