@@ -7,7 +7,7 @@ __license__    = "GPLv3"
 __status__     = "Development
 __deprecated__ = False
 __version__    = "0.0.1"
-__doc__        = "Generate 3 page GUI to cross check requirements to lab test and find acronyms"
+__doc__        = "Generate a tab based GUI to control LiteHouse and Lustron house styles"
 """
 # https://www.analyticsvidhya.com/blog/2023/05/elevate-your-python-apps-with-nicegui-the-ultimate-gui-framework/
 
@@ -18,6 +18,8 @@ from nicegui.events import MouseEventArguments
 
 from datetime import datetime
 import subprocess
+from dotenv import dotenv_values
+
 
 import GlobalConstants as GC
 
@@ -30,8 +32,8 @@ try:  # Importing externally developed libraries
 
 
 except ImportError:
-    print("ERROR: The supabase python module didn't import correctly!")
-    executeInstalls = input("Would you like me to *** pip install supabase-py *** for you (Y/N)? ")
+    print("ERROR: The supabase python module didn't import correctly! ")
+    executeInstalls = input("Would you like me to *** pip3 install supabase *** for you (Y/N)? ")
     if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
         subprocess.call(['sudo', 'apt', 'install', 'python3-pip'])
         subprocess.call(['pip3', 'install', 'supabase',])
@@ -44,6 +46,9 @@ except ImportError:
 
 # Global Variables
 isDarkModeOn = False
+userLoggedIn = False
+darkMode = ui.dark_mode()
+sanitizedPhoneNumber = '555555555'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
@@ -56,6 +61,7 @@ tabNames = ['lights', 'cameras', 'doors', 'network']
 
 # Create directory and URL for local storage of images
 app.add_static_files('/static/images', 'static/images')
+#app.add_static_files('/static/vidoes', 'static/videos')
 src = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
     
 # necessary until we improve native support for tabs (https://github.com/zauberzeug/nicegui/issues/251)
@@ -70,6 +76,21 @@ def toggle_dark_mode():
         
     isDarkModeOn = not isDarkModeOn
     
+def login_user():
+    global userLoggedIn 
+    
+    userLoggedIn = not userLoggedIn
+    userDataForm.visible = userLoggedIn
+    ui.update(userDataForm)
+    
+def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel):
+    userNotFound = True  # TODO Connect to supabase
+    if userNotFound:
+        invalidPhoneNumberLabel.set_text(phoneNumber + ' not found, create an account')
+        invalidPhoneNumberLabel.tailwind.font_weight('extrabold').text_color('red-600')
+        invalidPhoneNumberLabel.visible = True
+    
+    
 def csv_to_List(col, csv_file=GC.HOME_DIRECTORY+'TODO.csv'):
     result = []
     with open(csv_file, 'r') as file:
@@ -82,7 +103,20 @@ def switch_tab(msg: Dict) -> None:
     name = msg['args']
     tabs.props(f'model-value={name}')
     panels.props(f'model-value={name}')
+
+def sanitize_phone_number(text):
+    global sanitizedPhoneNumber
+    sanitizedPhoneNumber = text.replace(" ", "")
+    sanitizedPhoneNumber = sanitizedPhoneNumber.replace("(", "")
+    sanitizedPhoneNumber = sanitizedPhoneNumber.replace(")", "")
+    sanitizedPhoneNumber = sanitizedPhoneNumber.replace(".", "")
+    sanitizedPhoneNumber = sanitizedPhoneNumber.replace("-", "")
+    sanitizedPhoneNumber = sanitizedPhoneNumber.replace("+", "")
     
+    print(sanitizedPhoneNumber)
+    
+    return sanitizedPhoneNumber
+
 def mouse_handler(e: MouseEventArguments):
     global masterBedroomLightsOn 
     global bathroomLightsOn 
@@ -129,9 +163,13 @@ def draw_light_highlight(xPos, yPos, roomName):
     ''').classes('bg-transparent')
 """"""
 
-def draw_signin_with_appple_button():
+def draw_signin_with_google_button():
+    pass
+
+def draw_signin_with_apple_button():
     #https://developer.apple.com/documentation/sign_in_with_apple/displaying_sign_in_with_apple_buttons_on_the_webn
-    
+    pass
+    """
     ui.html(f'''
             <html>
     <head>
@@ -153,15 +191,17 @@ def draw_signin_with_appple_button():
 </html>
             
             ''')
+            
+    """
 
 if __name__ in {"__main__", "__mp_main__"}:
-    darkMode = ui.dark_mode()
     darkMode.disable()
     
-    url: str = os.environ.get(SUPABASE_URL)
-    key: str = os.environ.get(SUPABASE_KEY)
-    client = supabase.create_client(url, key)
-    
+    environmentVariables = dotenv_values()
+    url = environmentVariables['SUPABASE_URL']
+    key = environmentVariables['SUPABASE_KEY']
+    supabase: Client = create_client(url, key)
+
     
     #curl -O https://pagekite.net/pk/pagekite.py    -> subprocess.call(['curl', '-O', 'https://pagekite.net/pk/pagekite.py'])
     #python3 pagekite.py 8080 yourname.pagekite.me  -> f'python3 pagekite.py 8080 {homeName}.pagekite.me' -> subprocess.call(['python3', 'pagekite.py', '8080', f'{homeName}.pagekite.me'])
@@ -177,20 +217,39 @@ if __name__ in {"__main__", "__mp_main__"}:
     with ui.footer(value=False) as footer:
         ui.label('Mammoth Factory Corp')
 
+
     with ui.left_drawer().classes('bg-white-100') as left_drawer:
-        
-        with ui.grid(columns=2):
-            ui.label('Home Name:').tailwind.font_weight('extrabold').text_color('green-900')
-            ui.label(homeName).style('gap: 10px')
-        
-            ui.label('Home Address:').tailwind.font_weight('extrabold').text_color('green-900')
-            ui.label(homeAddress)
- 
-            ui.label('Home GPS:').tailwind.font_weight('extrabold').text_color('green-900')
-            ui.label("28.54250516114, -81.372488625")
-        
         with ui.grid(columns=1):   
             darkModeSwitch = ui.switch('Enable Dark Mode', on_change=toggle_dark_mode)
+            userLoginSwitch = ui.switch('FAKE LOGIN', on_change=login_user)
+            
+            invalidPhoneNumberLabel = ui.label()
+            invalidPhoneNumberLabel.visible = False
+            ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
+                            on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
+                            validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
+            
+            signInButton = ui.button('SIGN IN', on_click=lambda e: attempt_phone_login(sanitizedPhoneNumber, invalidPhoneNumberLabel))
+            
+            draw_signin_with_apple_button()
+            draw_signin_with_google_button()
+
+            ui.label('')
+            ui.label('')
+
+        userDataForm = ui.grid(columns=2)
+        userDataForm.visible = False
+        with userDataForm:
+            ui.label('Home Name:').tailwind.font_weight('extrabold')
+            ui.label(homeName).style('gap: 10px')
+        
+            ui.label('Home Address:').tailwind.font_weight('extrabold')
+            ui.label(homeAddress)
+
+            ui.label('Home GPS:').tailwind.font_weight('extrabold')
+            ui.label("28.54250516114, -81.372488625")
+        
+
 
         
     with ui.page_sticky(position='bottom-right', x_offset=20, y_offset=20):
@@ -211,8 +270,10 @@ if __name__ in {"__main__", "__mp_main__"}:
                 ui.image('https://picsum.photos/id/377/640/360')
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[2]}').classes('w-full'):
-            with ui.grid(columns=1):        
-                ui.image('static/images/doorOpening.gif')
+            with ui.grid(columns=2):        
+                ui.image('static/images/OpenDoor.gif')
+                
+                ui.image('static/images/OpenDoor.gif')
                         
         with ui.element('q-tab-panel').props(f'name={tabNames[3]}').classes('w-full'):
             with ui.grid(columns=1):
