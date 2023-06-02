@@ -11,17 +11,25 @@ __doc__        = "Generate a tab based GUI to control LiteHouse and Lustron hous
 """
 # https://www.analyticsvidhya.com/blog/2023/05/elevate-your-python-apps-with-nicegui-the-ultimate-gui-framework/
 
+# Disable PyLint linting messages
+# https://pypi.org/project/pylint/
+# pylint: disable=invalid-name
+
+# Standard Python libraries
 from typing import Dict
-
-from nicegui import app, ui
-from nicegui.events import MouseEventArguments
-
 from datetime import datetime
 import subprocess
 from dotenv import dotenv_values
 
+# 3rd party modules
+from nicegui import app, ui
+from nicegui.events import MouseEventArguments
+
+# Internal modules
 from PageKiteStartUp import *
+import DataProcessing as DP
 import GlobalConstants as GC
+
 
 try:  # Importing externally developed libraries
 
@@ -52,8 +60,8 @@ sanitizedPhoneNumber = '555555555'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-masterBedroomLightsOn = False
-bathroomLightsOn = False
+isMasterBedroomLightsOn = False
+ismasterBathroomLightsOn = False
 houseType = GC.LITEHOUSE
 liteHouseLightState = 0b0000_0000
 lustronLightState = 0b0000_0000
@@ -78,28 +86,28 @@ liteHouseSource0000_0111 = 'static/images/TODO.jpg'
 
 def toggle_dark_mode():
     global isDarkModeOn
-    
+
     if isDarkModeOn:
         darkMode.disable()
     else:
         darkMode.enable()
-        
+
     isDarkModeOn = not isDarkModeOn
-    
+
 def login_user():
     global userLoggedIn 
-    
+
     userLoggedIn = not userLoggedIn
     userDataForm.visible = userLoggedIn
     ui.update(userDataForm)
-    
+
 def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel, signInGrid):
     # TODO Connect to supabase
-    if phoneNumber == '7196390839' or phoneNumber == '5303668296': 
-        userFound = True  
+    if phoneNumber == '7196390839' or phoneNumber == '5303668296':
+        userFound = True
     else:
-        userFound = False  
-        
+        userFound = False
+
     if not userFound:
         invalidPhoneNumberLabel.set_text(phoneNumber + ' not found, create an account')
         invalidPhoneNumberLabel.tailwind.font_weight('extrabold').text_color('red-600')
@@ -107,19 +115,18 @@ def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel, signInGrid):
     else:
         userDataForm.visible = True
         signInGrid.visible = False
-        
+
 def reset_login_gui(invalidPhoneNumberLabel, signInGrid, userDataForm):
+    """ Toggle the visibility of labels and grid in the left drawer to reset GUI to boot state
+
+    Args:
+        invalidPhoneNumberLabel (ui.label()): _description_
+        signInGrid (ui.grid()): _description_
+        userDataForm (ui.grid()): _description_
+    """
     invalidPhoneNumberLabel.visible = False
     signInGrid.visible = True
     userDataForm.visible = False
-    
-def csv_to_List(col, csv_file=GC.HOME_DIRECTORY+'TODO.csv'):
-    result = []
-    with open(csv_file, 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            result.append(row[col])  # Append only the first column
-    return result
 
 def switch_tab(msg: Dict) -> None:
     name = msg['args']
@@ -128,56 +135,56 @@ def switch_tab(msg: Dict) -> None:
 
 def sanitize_phone_number(text):
     global sanitizedPhoneNumber
+
     sanitizedPhoneNumber = text.replace(" ", "")
     sanitizedPhoneNumber = sanitizedPhoneNumber.replace("(", "")
     sanitizedPhoneNumber = sanitizedPhoneNumber.replace(")", "")
     sanitizedPhoneNumber = sanitizedPhoneNumber.replace(".", "")
     sanitizedPhoneNumber = sanitizedPhoneNumber.replace("-", "")
     sanitizedPhoneNumber = sanitizedPhoneNumber.replace("+", "")
-    
-    print(sanitizedPhoneNumber)
-    
+
+    invalidPhoneNumberLabel.visible = False
+
     return sanitizedPhoneNumber
 
 def determine_room_mouse_handler(e: MouseEventArguments):
-    global masterBedroomLightsOn 
-    global bathroomLightsOn 
-    
+    global isMasterBedroomLightsOn 
+    global ismasterBathroomLightsOn 
+
     areaFound = False
 
-    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BEDROOM):    
+    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BEDROOM):
         if GC.MASTER_BEDROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BEDROOM_X[areaIndex] + GC.MASTER_BEDROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BEDROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BEDROOM_Y[areaIndex] + GC.MASTER_BEDROOM_Y_HEIGHT[areaIndex]:
-            
+
             areaFound = True
-            masterBedroomLightsOn = not masterBedroomLightsOn
-            if masterBedroomLightsOn:
+            isMasterBedroomLightsOn = not isMasterBedroomLightsOn
+            if isMasterBedroomLightsOn:
                 ui.notify(message='Turning Master Bedroom lights ON')
             else:
                 ui.notify(message='Turning Master Bedroom lights OFF')
-    
-            draw_light_highlightBETTER(ii, masterBedroomLightsOn, GC.MASTER_BEDROOM)
-    
-    maxAreaIndex = int(len(GC.MASTER_BATHROOM_RECT_AREAS)/GC.ROOM_DEFINITION)
-    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):         
+
+            draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
+
+    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):
         if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
-            
+
             areaFound = True
-            bathroomLightsOn = not bathroomLightsOn
-            if bathroomLightsOn:
+            ismasterBathroomLightsOn = not ismasterBathroomLightsOn
+            if ismasterBathroomLightsOn:
                 ui.notify(message='Turning Bathroom lights ON')
             else:
                 ui.notify(message='Turning Bathroom lights OFF')
-            
-            draw_light_highlightBETTER(ii, bathroomLightsOn, GC.MASTER_BATHROOM)
-    
-    if not areaFound:   
+
+            draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
+
+    if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
         ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
 
 
-def draw_light_highlight(ii, islighOn, roomName):
+def draw_light_highlightWORST(ii, islighOn, roomName):
     
     global liteHouseLightState
     print("Light State BEFORE change: " + str(liteHouseLightState))
@@ -199,17 +206,19 @@ def draw_light_highlight(ii, islighOn, roomName):
     ui.update(ii)
     
     
-def draw_light_highlightBETTER(ii, isLightOn, roomName):
+def draw_light_highlight(ii, isLightOn, roomName):
     global liteHouseLightState
     global lustronLightState
-    
+
     print("Light State BEFORE change:", bin(liteHouseLightState))
 
     # Define the light state modifications for each room
     roomLightModificationsDict = {
         GC.MASTER_BEDROOM: (0b0000_0001, 0b1111_1110),
-        GC.MASTER_BATHROOM: (0b0000_0010, 0b1111_1101)
-        #GC.BEDROOM_2: (0b0000_0100, 0b1111_1011),
+        GC.MASTER_BATHROOM: (0b0000_0010, 0b1111_1101),
+        GC.BATHROOM_2: (0b0000_0011, 0b1111_1100),
+        GC.BEDROOM_2: (0b0000_0100, 0b1111_1011),
+        GC.BEDROOM_3: (0b0000_0101, 0b1111_1010),
         # Add more rooms and their corresponding modifications as needed
     }
 
@@ -335,7 +344,7 @@ if __name__ in {"__main__", "__mp_main__"}:
                 ui.image('https://picsum.photos/id/377/640/360')
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[2]}').classes('w-full'):
-            with ui.grid(columns=2):        
+            with ui.grid(columns=2):  
                 ui.image('static/images/OpenDoor.gif')
                 
                 ui.image('static/images/OpenDoor.gif')
@@ -343,35 +352,8 @@ if __name__ in {"__main__", "__mp_main__"}:
         with ui.element('q-tab-panel').props(f'name={tabNames[3]}').classes('w-full'):
             with ui.grid(columns=1):
                 ui.label(f'{tabNames[3].capitalize()} Layout').tailwind('mx-auto text-2xl')
-                ui.mermaid('''
-                graph LR;
-                    A[UniFi PoE Switch] --> B[ROOM: Master Bedroom];
-                    A[UniFi PoE Switch] --> F[ZimaBoard Server]
-                    F[CPU: ZimaBoard Server] --> E[DISPLAY: Main Central Control];
-                    B[ROOM: Master Bedroom] --> C[LIGHT: Master Bedroom]; 
-                    B[ROOM: Master Bedroom] --> D[DISPLAY: Master Bedroom];
-                    A[UniFi PoE Switch] --> LIGHT-Kitcen;
-                    
-                    style A color:#000000, fill:#03C04A, stroke:#000000
-                    style B color:#000000, fill:#03COFF, stroke:#000000
-                    style C color:#000000, fill:#FFC04A, stroke:#000000
-                    style D color:#FFFFFF, fill:#1F1F1F, stroke:#000000
-                    style E color:#FFFFFF, fill:#1F1F1F, stroke:#000000
-                    style F color:#000000, fill:#B8191D, stroke:#000000
-                ''')
-    ui.run(native=RUN_ON_NATIVE_OS)
-
-    """
-    ui.label('Select Input Source').classes('m-auto justify-center')
-    
-    ui.date(value=datetime.now(), on_change=lambda e: result.set_text(e.value)).classes('m-auto justify-center')
-    result = ui.label()
-    
-    iso8601date = datetime.now()
-    
-    
+                newNetworkDiagram = DP.output_network_diagram(DP.delete_network_diagram_node(DP.parse_network_diagram(DP.STATIC_DEFAULT_NETWORK), 'A'))
+                #newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
+                ui.mermaid(newNetworkDiagram)
                 
-    with ui.row():
-        ui.label('Enter DOORS Requirement ID:').classes('text-3xl')    
-        ui.input(label='e.g. HW-3778-5', placeholder='')
-    """
+    ui.run(native=RUN_ON_NATIVE_OS)
