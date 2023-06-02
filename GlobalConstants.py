@@ -1,5 +1,6 @@
 
 ROOM_DEFINITION = 4
+VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH = 10
 
 HOME_DIRECTORY = '/Users/mars/'     # TODO Switch from MacOS to ZimaBaord file directory structure
 
