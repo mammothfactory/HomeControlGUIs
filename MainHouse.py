@@ -20,7 +20,7 @@ from datetime import datetime
 import subprocess
 from dotenv import dotenv_values
 
-
+from PageKiteStartUp import *
 import GlobalConstants as GC
 
 try:  # Importing externally developed libraries
@@ -52,8 +52,11 @@ sanitizedPhoneNumber = '555555555'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-masterBedroomLightsOn = True
-bathroomLightsOn = True
+masterBedroomLightsOn = False
+bathroomLightsOn = False
+houseType = GC.LITEHOUSE
+liteHouseLightState = 0b0000_0000
+lustronLightState = 0b0000_0000
 homeName = 'mammothlitehouse'
 homeAddress = '407 E Central Blvd, Orlando, FL 32801'
 pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'  #TODO
@@ -62,8 +65,15 @@ tabNames = ['lights', 'cameras', 'doors', 'network']
 # Create directory and URL for local storage of images
 app.add_static_files('/static/images', 'static/images')
 #app.add_static_files('/static/vidoes', 'static/videos')
-src = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
-    
+liteHouseSource = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
+liteHouseSource0000_0001 = 'static/images/TODO.jpg'
+liteHouseSource0000_0010 = 'static/images/TODO.jpg'
+liteHouseSource0000_0011 = 'static/images/TODO.jpg'
+liteHouseSource0000_0100 = 'static/images/TODO.jpg'
+liteHouseSource0000_0101 = 'static/images/TODO.jpg'
+liteHouseSource0000_0110 = 'static/images/TODO.jpg'
+liteHouseSource0000_0111 = 'static/images/TODO.jpg'
+
 # necessary until we improve native support for tabs (https://github.com/zauberzeug/nicegui/issues/251)
 
 def toggle_dark_mode():
@@ -83,13 +93,25 @@ def login_user():
     userDataForm.visible = userLoggedIn
     ui.update(userDataForm)
     
-def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel):
-    userNotFound = True  # TODO Connect to supabase
-    if userNotFound:
+def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel, signInGrid):
+    # TODO Connect to supabase
+    if phoneNumber == '7196390839' or phoneNumber == '5303668296': 
+        userFound = True  
+    else:
+        userFound = False  
+        
+    if not userFound:
         invalidPhoneNumberLabel.set_text(phoneNumber + ' not found, create an account')
         invalidPhoneNumberLabel.tailwind.font_weight('extrabold').text_color('red-600')
         invalidPhoneNumberLabel.visible = True
-    
+    else:
+        userDataForm.visible = True
+        signInGrid.visible = False
+        
+def reset_login_gui(invalidPhoneNumberLabel, signInGrid, userDataForm):
+    invalidPhoneNumberLabel.visible = False
+    signInGrid.visible = True
+    userDataForm.visible = False
     
 def csv_to_List(col, csv_file=GC.HOME_DIRECTORY+'TODO.csv'):
     result = []
@@ -117,51 +139,115 @@ def sanitize_phone_number(text):
     
     return sanitizedPhoneNumber
 
-def mouse_handler(e: MouseEventArguments):
+def determine_room_mouse_handler(e: MouseEventArguments):
     global masterBedroomLightsOn 
     global bathroomLightsOn 
     
-    for areaIndex in range(GC.ROOM_DEFINITION):    
+    areaFound = False
+
+    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BEDROOM):    
         if GC.MASTER_BEDROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BEDROOM_X[areaIndex] + GC.MASTER_BEDROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BEDROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BEDROOM_Y[areaIndex] + GC.MASTER_BEDROOM_Y_HEIGHT[areaIndex]:
             
-            
+            areaFound = True
             masterBedroomLightsOn = not masterBedroomLightsOn
             if masterBedroomLightsOn:
                 ui.notify(message='Turning Master Bedroom lights ON')
             else:
                 ui.notify(message='Turning Master Bedroom lights OFF')
-            
-            draw_light_highlight(e.image_x, e.image_y, masterBedroomLightsOn)
-            
-        elif GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
+    
+            draw_light_highlightBETTER(ii, masterBedroomLightsOn, GC.MASTER_BEDROOM)
+    
+    maxAreaIndex = int(len(GC.MASTER_BATHROOM_RECT_AREAS)/GC.ROOM_DEFINITION)
+    for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):         
+        if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
             
+            areaFound = True
             bathroomLightsOn = not bathroomLightsOn
             if bathroomLightsOn:
                 ui.notify(message='Turning Bathroom lights ON')
             else:
                 ui.notify(message='Turning Bathroom lights OFF')
             
-            draw_light_highlight(e.image_x, e.image_y, bathroomLightsOn, GC.MASTER_BATHROOM)
-            
-        else:
-            print("Clicked outside Master Bedroom and Bathroom areas")
-            ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
+            draw_light_highlightBETTER(ii, bathroomLightsOn, GC.MASTER_BATHROOM)
+    
+    if not areaFound:   
+        print("Clicked outside Master Bedroom and Bathroom areas")
+        ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
 
-""""""
-def draw_light_highlight(xPos, yPos, roomName):
 
+def draw_light_highlight(ii, islighOn, roomName):
+    
+    global liteHouseLightState
+    print("Light State BEFORE change: " + str(liteHouseLightState))
+    
     if roomName == GC.MASTER_BEDROOM:
-        pass
+        if(islighOn):
+            liteHouseLightState = liteHouseLightState | 0b0000_0001
+        else:
+            liteHouseLightState = liteHouseLightState & 0b1111_1110
+        
     elif roomName == GC.MASTER_BATHROOM:
         pass
-    ui.html(f'''
-            <svg viewBox="0 0 960 638" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="{xPos}" cy="{yPos}" r="100" fill="yellow" stroke="red" stroke-width="20" />
-            </svg>
-    ''').classes('bg-transparent')
-""""""
+
+    print("Light State AFTER change: " + str(liteHouseLightState))
+    if liteHouseLightState == 0b0000_0001:
+        pass
+        #ii.set_source(masterBedroomOnSource) 
+    
+    ui.update(ii)
+    
+    
+def draw_light_highlightBETTER(ii, isLightOn, roomName):
+    global liteHouseLightState
+    global lustronLightState
+    
+    print("Light State BEFORE change:", bin(liteHouseLightState))
+
+    # Define the light state modifications for each room
+    roomLightModificationsDict = {
+        GC.MASTER_BEDROOM: (0b0000_0001, 0b1111_1110),
+        GC.MASTER_BATHROOM: (0b0000_0010, 0b1111_1101)
+        #GC.BEDROOM_2: (0b0000_0100, 0b1111_1011),
+        # Add more rooms and their corresponding modifications as needed
+    }
+
+    if roomName in roomLightModificationsDict:
+        light_on_mask, light_off_mask = roomLightModificationsDict[roomName]
+        if isLightOn:
+            liteHouseLightState |= light_on_mask
+        else:
+            liteHouseLightState &= light_off_mask
+
+    print("Light State AFTER change:", bin(liteHouseLightState))
+
+    if houseType == GC.LITEHOUSE:
+        if liteHouseLightState == 0b0000_0000:
+            ii.set_source(liteHouseSource)
+        elif liteHouseLightState == 0b0000_0001:
+            ii.set_source(liteHouseSource0000_0001)
+        elif liteHouseLightState == 0b0000_0010:
+            ii.set_source(liteHouseSource0000_0010)
+        elif liteHouseLightState == 0b0000_0011:
+            ii.set_source(liteHouseSource0000_0011)
+        elif liteHouseLightState == 0b0000_0100:
+            ii.set_source(liteHouseSource0000_0100)
+        elif liteHouseLightState == 0b0000_0101:
+            ii.set_source(liteHouseSource0000_0101)
+        elif liteHouseLightState == 0b0000_0110:
+            ii.set_source(liteHouseSource0000_0110)
+        elif liteHouseLightState == 0b0000_0111:
+            ii.set_source(liteHouseSource0000_0111)
+    
+    elif houseType == GC.LUSTRON:
+        if lustronLightState == 0b0000_0001:
+            pass
+    else:
+        print('INVALID HOUSE TYPE')
+        
+    ui.update(ii)
+
 
 def draw_signin_with_google_button():
     pass
@@ -169,43 +255,16 @@ def draw_signin_with_google_button():
 def draw_signin_with_apple_button():
     #https://developer.apple.com/documentation/sign_in_with_apple/displaying_sign_in_with_apple_buttons_on_the_webn
     pass
-    """
-    ui.html(f'''
-            <html>
-    <head>
-        <meta name="appleid-signin-client-id" content="[CLIENT_ID]">
-        <meta name="appleid-signin-scope" content="[SCOPES]">
-        <meta name="appleid-signin-redirect-uri" content="[REDIRECT_URI]">
-        <meta name="appleid-signin-state" content="[STATE]">
-    </head>
-    <style>
-        .signin-button {
-            width: 210px;
-            height: 40px;
-        }
-    </style>
-    <body>
-        <div id="appleid-signin" class="signin-button" data-color="black" data-border="true" data-type="sign-in"></div>
-        <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
-    </body>
-</html>
-            
-            ''')
-            
-    """
 
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode.disable()
+    #serveApp = PageKiteStartUp(homeName)
     
     environmentVariables = dotenv_values()
     url = environmentVariables['SUPABASE_URL']
     key = environmentVariables['SUPABASE_KEY']
     supabase: Client = create_client(url, key)
 
-    
-    #curl -O https://pagekite.net/pk/pagekite.py    -> subprocess.call(['curl', '-O', 'https://pagekite.net/pk/pagekite.py'])
-    #python3 pagekite.py 8080 yourname.pagekite.me  -> f'python3 pagekite.py 8080 {homeName}.pagekite.me' -> subprocess.call(['python3', 'pagekite.py', '8080', f'{homeName}.pagekite.me'])
-    
     ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
     with ui.header().classes(replace='row items-center') as header:
@@ -221,21 +280,24 @@ if __name__ in {"__main__", "__mp_main__"}:
     with ui.left_drawer().classes('bg-white-100') as left_drawer:
         with ui.grid(columns=1):   
             darkModeSwitch = ui.switch('Enable Dark Mode', on_change=toggle_dark_mode)
-            userLoginSwitch = ui.switch('FAKE LOGIN', on_change=login_user)
+            ui.label('')
             
-            invalidPhoneNumberLabel = ui.label()
-            invalidPhoneNumberLabel.visible = False
-            ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
-                            on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
-                            validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
-            
-            signInButton = ui.button('SIGN IN', on_click=lambda e: attempt_phone_login(sanitizedPhoneNumber, invalidPhoneNumberLabel))
-            
-            draw_signin_with_apple_button()
-            draw_signin_with_google_button()
+            signInGrid = ui.grid(columns=1)
+            with signInGrid:
+                
+                invalidPhoneNumberLabel = ui.label()
+                invalidPhoneNumberLabel.visible = False
+                ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
+                                on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
+                                validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
+                
+                signInButton = ui.button('SIGN IN', on_click=lambda e: attempt_phone_login(sanitizedPhoneNumber, invalidPhoneNumberLabel, signInGrid))
+                
+                #draw_signin_with_apple_button()
+                #draw_signin_with_google_button()
 
-            ui.label('')
-            ui.label('')
+                ui.label('')
+                ui.label('')
 
         userDataForm = ui.grid(columns=2)
         userDataForm.visible = False
@@ -248,6 +310,8 @@ if __name__ in {"__main__", "__mp_main__"}:
 
             ui.label('Home GPS:').tailwind.font_weight('extrabold')
             ui.label("28.54250516114, -81.372488625")
+            
+            signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, signInGrid, userDataForm))
         
 
 
@@ -255,15 +319,16 @@ if __name__ in {"__main__", "__mp_main__"}:
     with ui.page_sticky(position='bottom-right', x_offset=20, y_offset=20):
         infoButton = ui.button(on_click=footer.toggle).props('fab icon=info')
 
-
+    
     # the page content consists of multiple tab panels
     with ui.element('q-tab-panels').props('model-value=A animated').classes('w-full') as panels:
         #for name in tabNames:
         
+       
         with ui.element('q-tab-panel').props(f'name={tabNames[0]}').classes('w-full'):
             with ui.grid(columns=1):
                 ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
-                ii = ui.interactive_image(src, on_mouse=mouse_handler, events=['mousedown'], cross=True)  #events=['mousedown', 'mouseup']
+                ii = ui.interactive_image(liteHouseSource, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
             with ui.grid(columns=1):
@@ -294,12 +359,7 @@ if __name__ in {"__main__", "__mp_main__"}:
                     style E color:#FFFFFF, fill:#1F1F1F, stroke:#000000
                     style F color:#000000, fill:#B8191D, stroke:#000000
                 ''')
-
     ui.run(native=RUN_ON_NATIVE_OS)
-
-
-
-
 
     """
     ui.label('Select Input Source').classes('m-auto justify-center')
