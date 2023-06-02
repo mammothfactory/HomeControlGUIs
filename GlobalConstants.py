@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+"""
+__authors__    = ["Blaze Sanders"]
+__contact__    = "blaze.d.a.sanders@gmail.com"
+__copyright__  = "Copyright 2023"
+__license__    = "GPLv3"
+__status__     = "Development
+__deprecated__ = False
+__version__    = "0.0.1"
+__doc__        = "Generate a tab based GUI to control LiteHouse and Lustron house styles"
+"""
+TODO = -1  
 
 ROOM_DEFINITION = 4
 VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH = 10
@@ -5,28 +17,49 @@ VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH = 10
 LITEHOUSE = 'LITEHOUSE'
 LUSTRON = 'LUSTRON'
 
-HOME_DIRECTORY = '/Users/mars/'     # TODO Switch from MacOS to ZimaBaord file directory structure
+MAC_HOME_DIRECTORY = '/Users/mars/'
+LINUX_HOME_DIRECTORY = '/TODO'          # TODO ZimaBaord file directory structure
 
 MASTER_BEDROOM = 'MASTER_BEDROOM'
-MASTER_BEDROOM_X = [1770]           # X pixel location of upper left corner
+MASTER_BEDROOM_X = [1770]               # X pixel location of upper left corner
 MASTER_BEDROOM_Y = [245]
-MASTER_BEDROOM_X_WIDTH = [505]   
+MASTER_BEDROOM_X_WIDTH = [505]
 MASTER_BEDROOM_Y_HEIGHT = [580]
 MAX_AREA_INDEX_MASTER_BEDROOM = 1
 MASTER_BEDROOM_RECT_AREAS = [[MASTER_BEDROOM_X[0], MASTER_BEDROOM_Y[0], MASTER_BEDROOM_X_WIDTH[0], MASTER_BEDROOM_Y_HEIGHT[0]],]
 
 MASTER_BATHROOM = 'MASTER_BATHROOM'
-MASTER_BATHROOM_X = [1365, 1365]           # X pixel location of upper left corner
+MASTER_BATHROOM_X = [1365, 1365]        # X pixel location of upper left corner
 MASTER_BATHROOM_Y = [410, 622]
-MASTER_BATHROOM_X_WIDTH = [368, 270]    #TODO UPDATE 340 
+MASTER_BATHROOM_X_WIDTH = [368, 270]    
 MASTER_BATHROOM_Y_HEIGHT = [392, 392]
 MAX_AREA_INDEX_MASTER_BATHROOM = 2
 MASTER_BATHROOM_RECT_AREAS = [[MASTER_BATHROOM_X[0], MASTER_BATHROOM_Y[0], MASTER_BATHROOM_X_WIDTH[0], MASTER_BATHROOM_Y_HEIGHT[0]], \
                               [MASTER_BATHROOM_X[1], MASTER_BATHROOM_Y[1], MASTER_BATHROOM_X_WIDTH[1], MASTER_BATHROOM_Y_HEIGHT[1]]]
 
+BEDROOM_2 = 'BEDROOM_2'
+BEDROOM_2_X = [TODO]                    # X pixel location of upper left corner
+BEDROOM_2_Y = [TODO]
+BEDROOM_2_X_WIDTH = [TODO]
+BEDROOM_2_Y_HEIGHT = [TODO]
+MAX_AREA_INDEX_BEDROOM_2 = 1
+BEDROOM_2_RECT_AREAS = [[BEDROOM_2_X[0], BEDROOM_2_Y[0], BEDROOM_2_X_WIDTH[0], BEDROOM_2_Y_HEIGHT[0]],]
+
+
+BEDROOM_3 = 'BEDROOM_3'
+BEDROOM_3_X = [TODO]                    # X pixel location of upper left corner
+BEDROOM_3_Y = [TODO]
+BEDROOM_3_X_WIDTH = [TODO]
+BEDROOM_3_Y_HEIGHT = [TODO]
+MAX_AREA_INDEX_BEDROOM_3 = 1
+BEDROOM_3_RECT_AREAS = [[BEDROOM_3_X[0], BEDROOM_3_Y[0], BEDROOM_3_X_WIDTH[0], BEDROOM_3_Y_HEIGHT[0]],]
+
+BATHROOM_2 = 'BATHROOM_2'
+BATHROOM_2_X = [TODO]                   # X pixel location of upper left corner
+BATHROOM_2_Y = [TODO]
+BATHROOM_2_X_WIDTH = [TODO]
+BATHROOM_2_Y_HEIGHT = [TODO]
+MAX_AREA_INDEX_BATHROOM_2 = 1
+BATHROOM_2_RECT_AREAS = [[BATHROOM_2_X[0], BATHROOM_2_Y[0], BATHROOM_2_X_WIDTH[0], BATHROOM_2_Y_HEIGHT[0]],]
+
 MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
-
-class GlobalConstants:
-
-    if __name__ == "__main__":
-        print("Using GlobalConstants.py")
