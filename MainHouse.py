@@ -352,8 +352,8 @@ if __name__ in {"__main__", "__mp_main__"}:
         with ui.element('q-tab-panel').props(f'name={tabNames[3]}').classes('w-full'):
             with ui.grid(columns=1):
                 ui.label(f'{tabNames[3].capitalize()} Layout').tailwind('mx-auto text-2xl')
-                newNetworkDiagram = DP.output_network_diagram(DP.delete_network_diagram_node(DP.parse_network_diagram(DP.STATIC_DEFAULT_NETWORK), 'A'))
-                #newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
+                # WORKS!!! :) newNetworkDiagram = DP.output_network_diagram(DP.delete_network_diagram_node(DP.parse_network_diagram(DP.STATIC_DEFAULT_NETWORK), 'H'))
+                newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
                 ui.mermaid(newNetworkDiagram)
                 
     ui.run(native=RUN_ON_NATIVE_OS)
