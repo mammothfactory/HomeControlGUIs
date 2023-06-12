@@ -25,6 +25,8 @@ from dotenv import dotenv_values
 from nicegui import app, ui
 from nicegui.events import MouseEventArguments
 
+import paramiko  # Ethernet PoE Switch control
+
 # Internal modules
 from PageKiteStartUp import *
 import DataProcessing as DP
@@ -164,7 +166,7 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             else:
                 ui.notify(message='Turning Master Bedroom lights OFF')
 
-            draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
+            #draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
 
     for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):
         if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
@@ -174,10 +176,24 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             ismasterBathroomLightsOn = not ismasterBathroomLightsOn
             if ismasterBathroomLightsOn:
                 ui.notify(message='Turning Bathroom lights ON')
+                # Telnet command
+                telnet_command = '(echo "enable" ; echo "configure" ; echo "interface \'0/10\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+
+                # Execute the command
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                output = stdout.read().decode()
+                print(output)
             else:
                 ui.notify(message='Turning Bathroom lights OFF')
+                # Telnet command
+                telnet_command = '(echo "enable" ; echo "configure" ; echo "interface \'0/10\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
 
-            draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
+                # Execute the command
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                output = stdout.read().decode()
+                print(output)
+
+            #draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
 
     if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
@@ -273,6 +289,15 @@ if __name__ in {"__main__", "__mp_main__"}:
     url = environmentVariables['SUPABASE_URL']
     key = environmentVariables['SUPABASE_KEY']
     supabase: Client = create_client(url, key)
+    
+    unifiEnvironmentVariables = dotenv_values()
+    userNAme = unifiEnvironmentVariables['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
+    pw = unifiEnvironmentVariables['PASSWORD_UNIFI_USW_ENTERPRISE_24_POE']
+    
+    # Establish SSH connection
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect('192.168.3.2', username=userNAme, password=pw)
 
     ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
