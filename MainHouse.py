@@ -16,6 +16,7 @@ __doc__        = "Generate a tab based GUI to control LiteHouse and Lustron hous
 # pylint: disable=invalid-name
 
 # Standard Python libraries
+import time
 from typing import Dict
 from datetime import datetime
 import subprocess
@@ -75,12 +76,12 @@ tabNames = ['lights', 'cameras', 'doors', 'network']
 # Create directory and URL for local storage of images
 app.add_static_files('/static/images', 'static/images')
 #app.add_static_files('/static/vidoes', 'static/videos')
-liteHouseSource = 'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
-liteHouseSource0000_0001 = 'static/images/TODO.jpg'
-liteHouseSource0000_0010 = 'static/images/TODO.jpg'
-liteHouseSource0000_0011 = 'static/images/TODO.jpg'
-liteHouseSource0000_0100 = 'static/images/TODO.jpg'
-liteHouseSource0000_0101 = 'static/images/TODO.jpg'
+liteHouseSource = 'static/images/LiteHouseV1_00000.png' #'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
+liteHouseSource0000_0001 = 'static/images/LiteHouseV1_00001.png'
+liteHouseSource0000_0010 = 'static/images/LiteHouseV1_00010.png'
+liteHouseSource0000_0011 = 'static/images/LiteHouseV1_00011.png'
+liteHouseSource0000_0100 = 'static/images/LiteHouseV1_00100.png'
+liteHouseSource0000_0101 = 'static/images/LiteHouseV1_00101.png'
 liteHouseSource0000_0110 = 'static/images/TODO.jpg'
 liteHouseSource0000_0111 = 'static/images/TODO.jpg'
 
@@ -151,7 +152,7 @@ def sanitize_phone_number(text):
 
 def determine_room_mouse_handler(e: MouseEventArguments):
     global isMasterBedroomLightsOn 
-    global ismasterBathroomLightsOn 
+    global ismasterBathroomLightsOn
 
     areaFound = False
 
@@ -162,12 +163,12 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             areaFound = True
             isMasterBedroomLightsOn = not isMasterBedroomLightsOn
             if isMasterBedroomLightsOn:
-                ui.notify(message='Turning Master Bedroom lights ON')
+                ui.notify(message='Please wait turning Master Bedroom lights ON')
             else:
-                ui.notify(message='Turning Master Bedroom lights OFF')
+                ui.notify(message='Master Bedroom lights OFF')
 
-            #draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
-
+            draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
+    
     for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):
         if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
@@ -175,52 +176,29 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             areaFound = True
             ismasterBathroomLightsOn = not ismasterBathroomLightsOn
             if ismasterBathroomLightsOn:
-                ui.notify(message='Turning Bathroom lights ON')
+                ui.notify(message='Please wait turning Bathroom lights ON')
+                
                 # Telnet command
-                telnet_command = '(echo "enable" ; echo "configure" ; echo "interface \'0/10\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-
-                # Execute the command
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
                 stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                output = stdout.read().decode()
-                print(output)
+                print(stdout.read().decode())
+                
             else:
-                ui.notify(message='Turning Bathroom lights OFF')
+                ui.notify(message='Bathroom lights OFF')
                 # Telnet command
-                telnet_command = '(echo "enable" ; echo "configure" ; echo "interface \'0/10\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
 
                 # Execute the command
                 stdin, stdout, stderr = ssh.exec_command(telnet_command)
                 output = stdout.read().decode()
                 print(output)
 
-            #draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
-
+            draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
+    
     if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
         ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
 
-
-def draw_light_highlightWORST(ii, islighOn, roomName):
-    
-    global liteHouseLightState
-    print("Light State BEFORE change: " + str(liteHouseLightState))
-    
-    if roomName == GC.MASTER_BEDROOM:
-        if(islighOn):
-            liteHouseLightState = liteHouseLightState | 0b0000_0001
-        else:
-            liteHouseLightState = liteHouseLightState & 0b1111_1110
-        
-    elif roomName == GC.MASTER_BATHROOM:
-        pass
-
-    print("Light State AFTER change: " + str(liteHouseLightState))
-    if liteHouseLightState == 0b0000_0001:
-        pass
-        #ii.set_source(masterBedroomOnSource) 
-    
-    ui.update(ii)
-    
     
 def draw_light_highlight(ii, isLightOn, roomName):
     global liteHouseLightState
@@ -270,8 +248,6 @@ def draw_light_highlight(ii, isLightOn, roomName):
             pass
     else:
         print('INVALID HOUSE TYPE')
-        
-    ui.update(ii)
 
 
 def draw_signin_with_google_button():
@@ -363,6 +339,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             with ui.grid(columns=1):
                 ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
                 ii = ui.interactive_image(liteHouseSource, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
+                ii.set_source(liteHouseSource)
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
             with ui.grid(columns=1):
