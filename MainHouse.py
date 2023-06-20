@@ -7,31 +7,31 @@ __license__    = "GPLv3"
 __status__     = "Development
 __deprecated__ = False
 __version__    = "0.0.1"
-__doc__        = "Generate a tab based GUI to control LiteHouse and Lustron house styles"
+__doc__        = "Generate a tab based Progressice Web App GUI to control both the LiteHouse and Lustron home styles"
 """
-# https://www.analyticsvidhya.com/blog/2023/05/elevate-your-python-apps-with-nicegui-the-ultimate-gui-framework/
 
-# Disable PyLint linting messages
+# Disable PyLint linting messages that seem unuseful
 # https://pypi.org/project/pylint/
 # pylint: disable=invalid-name
+# pylint: disable=global-statement
 
 # Standard Python libraries
-import time
-from typing import Dict
-from datetime import datetime
-import subprocess
-from dotenv import dotenv_values
+import time                         # TODO Remove Enable program pausing
+from datetime import datetime       # TODO Remove if not used
+from typing import Dict             # Enable creation of GUI tabs
+import subprocess                   # Enable the running of CLI commands like python3 Main.py
+import random                       # Used to generate 2FA / OTP codes for telephone login
 
 # 3rd party modules
 from nicegui import app, ui
 from nicegui.events import MouseEventArguments
-
-import paramiko  # Ethernet PoE Switch control
+from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
 
 # Internal modules
-from PageKiteStartUp import *
-import DataProcessing as DP
-import GlobalConstants as GC
+from PageKiteStartUp import *       # 
+import DataProcessing as DP         # 
+import GlobalConstants as GC        # Global 
+import TwilioHelper as TH 
 
 
 try:  # Importing externally developed libraries
@@ -41,6 +41,9 @@ try:  # Importing externally developed libraries
     #import supabase
     from supabase import create_client, Client   #TODO REMOVE?, execute
 
+    # Enable control of ports on an Ethernet PoE Switch using telnet
+    # https://www.paramiko.org/installing.html
+    import paramiko
 
 except ImportError:
     print("ERROR: The supabase python module didn't import correctly! ")
@@ -52,42 +55,29 @@ except ImportError:
         print("You didn't type Y or YES :)")
         print("Follow supabase manual install instructions at https://pypi.org/project/supabase/")
 
-
-#import cv2
-
 # Global Variables
 isDarkModeOn = False
 userLoggedIn = False
 darkMode = ui.dark_mode()
 sanitizedPhoneNumber = '555555555'
-RUN_ON_NATIVE_OS = False
-TUNNEL_TO_INTERNET = True
 
 isMasterBedroomLightsOn = False
 ismasterBathroomLightsOn = False
-houseType = GC.LITEHOUSE
+houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
 liteHouseLightState = 0b0000_0000
 lustronLightState = 0b0000_0000
 homeName = 'mammothlitehouse'
 homeAddress = '407 E Central Blvd, Orlando, FL 32801'
-pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'  #TODO
+pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'    #TODO so that users can switch their home names 
 tabNames = ['lights', 'cameras', 'doors', 'network']
 
 # Create directory and URL for local storage of images
 app.add_static_files('/static/images', 'static/images')
-#app.add_static_files('/static/vidoes', 'static/videos')
-liteHouseSource = 'static/images/LiteHouseV1_00000.png' #'https://i.ibb.co/gWVGjpn/Lite-House-Top-View-Drawing.jpg' #'https://github.com/mammothfactory/LitehouseGUIs/blob/392ca21d544c76b8f7531d509c9d13deb153e016/LiteHouseTopViewDrawing-2.jpeg?raw=true' #https://picsum.photos/id/565/640/360'
-liteHouseSource0000_0001 = 'static/images/LiteHouseV1_00001.png'
-liteHouseSource0000_0010 = 'static/images/LiteHouseV1_00010.png'
-liteHouseSource0000_0011 = 'static/images/LiteHouseV1_00011.png'
-liteHouseSource0000_0100 = 'static/images/LiteHouseV1_00100.png'
-liteHouseSource0000_0101 = 'static/images/LiteHouseV1_00101.png'
-liteHouseSource0000_0110 = 'static/images/TODO.jpg'
-liteHouseSource0000_0111 = 'static/images/TODO.jpg'
-
-# necessary until we improve native support for tabs (https://github.com/zauberzeug/nicegui/issues/251)
+app.add_static_files('/static/vidoes', 'static/videos')
 
 def toggle_dark_mode():
+    """ Toggle entire window between light mode and dark mode
+    """
     global isDarkModeOn
 
     if isDarkModeOn:
@@ -106,7 +96,26 @@ def login_user():
 
 def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel, signInGrid):
     # TODO Connect to supabase
-    if phoneNumber == '7196390839' or phoneNumber == '5303668296':
+    
+    countryCodePhoneNumber = '+1' + phoneNumber
+    user = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
+    
+    otpCode = random.randint(100000, 999999)
+    TH.send_otp_code(otpCode)
+    
+    session = supabase.auth.verify_otp(countryCodePhoneNumber)
+    
+    
+    #verifyOtp(phoneNumber, '567864', 'sms')
+    """
+    session = supabase.auth.verifyOtp({
+    phone: '+13334445555',
+    token: '123456',
+    type: 'sms',
+    })
+   """
+
+    if phoneNumber == '5303668296':
         userFound = True
     else:
         userFound = False
@@ -225,27 +234,49 @@ def draw_light_highlight(ii, isLightOn, roomName):
 
     print("Light State AFTER change:", bin(liteHouseLightState))
 
-    if houseType == GC.LITEHOUSE:
-        if liteHouseLightState == 0b0000_0000:
-            ii.set_source(liteHouseSource)
-        elif liteHouseLightState == 0b0000_0001:
-            ii.set_source(liteHouseSource0000_0001)
-        elif liteHouseLightState == 0b0000_0010:
-            ii.set_source(liteHouseSource0000_0010)
-        elif liteHouseLightState == 0b0000_0011:
-            ii.set_source(liteHouseSource0000_0011)
-        elif liteHouseLightState == 0b0000_0100:
-            ii.set_source(liteHouseSource0000_0100)
-        elif liteHouseLightState == 0b0000_0101:
-            ii.set_source(liteHouseSource0000_0101)
-        elif liteHouseLightState == 0b0000_0110:
-            ii.set_source(liteHouseSource0000_0110)
-        elif liteHouseLightState == 0b0000_0111:
-            ii.set_source(liteHouseSource0000_0111)
-    
-    elif houseType == GC.LUSTRON:
-        if lustronLightState == 0b0000_0001:
-            pass
+    if houseType == GC.LITE_HOUSE_SOURCE:
+
+        if liteHouseLightState == 0b0000_0000:   ii.set_source(GC.LITE_HOUSE_SOURCE)
+        elif liteHouseLightState == 0b0000_0001: ii.set_source(GC.LITE_HOUSE_SOURCE00000001)
+        elif liteHouseLightState == 0b0000_0010: ii.set_source(GC.LITE_HOUSE_SOURCE00000010)
+        elif liteHouseLightState == 0b0000_0011: ii.set_source(GC.LITE_HOUSE_SOURCE00000011)
+        elif liteHouseLightState == 0b0000_0100: ii.set_source(GC.LITE_HOUSE_SOURCE00000100)
+        elif liteHouseLightState == 0b0000_0101: ii.set_source(GC.LITE_HOUSE_SOURCE00000101)
+        elif liteHouseLightState == 0b0000_0110: ii.set_source(GC.LITE_HOUSE_SOURCE00000110)
+        elif liteHouseLightState == 0b0000_0111: ii.set_source(GC.LITE_HOUSE_SOURCE00000111)
+        elif liteHouseLightState == 0b0000_1000: ii.set_source(GC.LITE_HOUSE_SOURCE00001000)
+        elif liteHouseLightState == 0b0000_1001: ii.set_source(GC.LITE_HOUSE_SOURCE00001001)
+        elif liteHouseLightState == 0b0000_1010: ii.set_source(GC.LITE_HOUSE_SOURCE00001010)
+        elif liteHouseLightState == 0b0000_1011: ii.set_source(GC.LITE_HOUSE_SOURCE00001011)
+        elif liteHouseLightState == 0b0000_1100: ii.set_source(GC.LITE_HOUSE_SOURCE00001100)
+        elif liteHouseLightState == 0b0000_1101: ii.set_source(GC.LITE_HOUSE_SOURCE00001101)
+        elif liteHouseLightState == 0b0000_1110: ii.set_source(GC.LITE_HOUSE_SOURCE00001110)
+        elif liteHouseLightState == 0b0000_1111: ii.set_source(GC.LITE_HOUSE_SOURCE00001111) 
+        elif liteHouseLightState == 0b0001_0000: ii.set_source(GC.LITE_HOUSE_SOURCE00010000)
+        elif liteHouseLightState == 0b0001_0001: ii.set_source(GC.LITE_HOUSE_SOURCE00010001)
+        elif liteHouseLightState == 0b0001_0010: ii.set_source(GC.LITE_HOUSE_SOURCE00010010)        
+        elif liteHouseLightState == 0b0001_0011: ii.set_source(GC.LITE_HOUSE_SOURCE00010011)
+        elif liteHouseLightState == 0b0001_0100: ii.set_source(GC.LITE_HOUSE_SOURCE00010100)
+        elif liteHouseLightState == 0b0001_0101: ii.set_source(GC.LITE_HOUSE_SOURCE00010101)
+        elif liteHouseLightState == 0b0001_0110: ii.set_source(GC.LITE_HOUSE_SOURCE00010110)        
+        elif liteHouseLightState == 0b0001_0111: ii.set_source(GC.LITE_HOUSE_SOURCE00010111)        
+        elif liteHouseLightState == 0b0001_1000: ii.set_source(GC.LITE_HOUSE_SOURCE00011000)        
+        elif liteHouseLightState == 0b0001_1001: ii.set_source(GC.LITE_HOUSE_SOURCE00011001)
+        elif liteHouseLightState == 0b0001_1010: ii.set_source(GC.LITE_HOUSE_SOURCE00011010)        
+        elif liteHouseLightState == 0b0001_1011: ii.set_source(GC.LITE_HOUSE_SOURCE00011011)        
+        elif liteHouseLightState == 0b0001_1100: ii.set_source(GC.LITE_HOUSE_SOURCE00011100)        
+        elif liteHouseLightState == 0b0001_1101: ii.set_source(GC.LITE_HOUSE_SOURCE00011101)        
+        elif liteHouseLightState == 0b0001_1110: ii.set_source(GC.LITE_HOUSE_SOURCE00011110)        
+        elif liteHouseLightState == 0b0001_1111: ii.set_source(GC.LITE_HOUSE_SOURCE00011111)
+        else: ui.notify(message='INVALID LIGHT STATE: Refresh your browser window')        
+                                               
+    elif houseType == GC.LUSTRON_SOURCE:
+        match lustronLightState:
+            case 0b0000_0000:
+                ii.set_source(GC.LUSTRON_SOURCE)
+            case _:
+                ui.notify(message='INVALID LIGHT STATE: Refresh your browser window')
+
     else:
         print('INVALID HOUSE TYPE')
 
@@ -261,19 +292,20 @@ if __name__ in {"__main__", "__mp_main__"}:
     darkMode.disable()
     #serveApp = PageKiteStartUp(homeName)
     
-    environmentVariables = dotenv_values()
-    url = environmentVariables['SUPABASE_URL']
-    key = environmentVariables['SUPABASE_KEY']
+    supabaseEnvironmentVariables = dotenv_values()
+    url = supabaseEnvironmentVariables['SUPABASE_URL']
+    key = supabaseEnvironmentVariables['SUPABASE_KEY']
     supabase: Client = create_client(url, key)
     
     unifiEnvironmentVariables = dotenv_values()
-    userNAme = unifiEnvironmentVariables['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
-    pw = unifiEnvironmentVariables['PASSWORD_UNIFI_USW_ENTERPRISE_24_POE']
+    unifiSshUserName = unifiEnvironmentVariables['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
+    unifiSshpw = unifiEnvironmentVariables['PASSWORD_UNIFI_USW_ENTERPRISE_24_POE']
+
     
     # Establish SSH connection
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('192.168.3.2', username=userNAme, password=pw)
+    ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
 
     ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
@@ -338,15 +370,14 @@ if __name__ in {"__main__", "__mp_main__"}:
         with ui.element('q-tab-panel').props(f'name={tabNames[0]}').classes('w-full'):
             with ui.grid(columns=1):
                 ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
-                ii = ui.interactive_image(liteHouseSource, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
-                ii.set_source(liteHouseSource)
+                ii = ui.interactive_image(houseType, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
             with ui.grid(columns=1):
                 ui.image('https://picsum.photos/id/377/640/360')
                 
         with ui.element('q-tab-panel').props(f'name={tabNames[2]}').classes('w-full'):
-            with ui.grid(columns=2):  
+            with ui.grid(columns=2):
                 ui.image('static/images/OpenDoor.gif')
                 
                 ui.image('static/images/OpenDoor.gif')
@@ -358,4 +389,4 @@ if __name__ in {"__main__", "__mp_main__"}:
                 newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
                 ui.mermaid(newNetworkDiagram)
                 
-    ui.run(native=RUN_ON_NATIVE_OS)
+    ui.run(native=GC.RUN_ON_NATIVE_OS)
