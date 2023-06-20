@@ -7,7 +7,7 @@ __license__    = "GPLv3"
 __status__     = "Development
 __deprecated__ = False
 __version__    = "0.0.1"
-__doc__        = "Generate a tab based GUI to control LiteHouse and Lustron house styles"
+__doc__        = "CONSTANTS for both LiteHouse and Lustron home configurations"
 """
 TODO = -1  
 
@@ -17,9 +17,15 @@ VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH = 10
 LITEHOUSE = 'LITEHOUSE'
 LUSTRON = 'LUSTRON'
 
-MAC_HOME_DIRECTORY = '/Users/mars/'
-LINUX_HOME_DIRECTORY = '/TODO'          # TODO ZimaBaord file directory structure
+RUN_ON_NATIVE_OS = False
+TUNNEL_TO_INTERNET = True
 
+MAC_HOME_DIRECTORY = '/Users/mars/'
+LINUX_HOME_DIRECTORY = '/TODO'         # TODO ZimaBaord file directory structure
+
+MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
+
+# LiteHouse Room Name Constants
 MASTER_BEDROOM = 'MASTER_BEDROOM'
 MASTER_BEDROOM_SWITCH_PORT = 10
 MASTER_BEDROOM_X = [1986]               # X pixel location of upper left corner
@@ -40,22 +46,41 @@ MASTER_BATHROOM_RECT_AREAS = [[MASTER_BATHROOM_X[0], MASTER_BATHROOM_Y[0], MASTE
 
 KITCHEN = 'KITCHEN'
 KITCHEN_SWITCH_PORT = 12
-KITCHEN_X = [1090]        # X pixel location of upper left corner
+KITCHEN_X = [1099]        # X pixel location of upper left corner
 KITCHEN_Y = [330]
-KITCHEN_X_WIDTH = [400]
+KITCHEN_X_WIDTH = [390]
 KITCHEN_Y_HEIGHT = [584]
 MAX_AREA_INDEX_KITCHEN = 1
 KITCHEN_RECT_AREAS = [[KITCHEN_X[0], KITCHEN_Y[0], KITCHEN_X_WIDTH[0], KITCHEN_Y_HEIGHT[0]],]
 
+LIVINGROOM = 'LIVINGROOM'
+LIVINGROOM_SWITCH_PORT = 13
+LIVINGROOM_X = [284]        # X pixel location of upper left corner
+LIVINGROOM_Y = [330]
+LIVINGROOM_X_WIDTH = [815]
+LIVINGROOM_Y_HEIGHT = [584]
+MAX_AREA_INDEX_LIVINGROOM = 1
+LIVINGROOM_RECT_AREAS = [[LIVINGROOM_X[0], LIVINGROOM_Y[0], LIVINGROOM_X_WIDTH[0], LIVINGROOM_Y_HEIGHT[0]],]
+
+HALLWAY = 'HALLWAY'
+HALLWAY_SWITCH_PORT = 14
+HALLWAY_X = [TODO]        # X pixel location of upper left corner
+HALLWAY_Y = [TODO]
+HALLWAY_X_WIDTH = [TODO]
+HALLWAY_Y_HEIGHT = [TODO]
+MAX_AREA_INDEX_HALLWAY = 1
+HALLWAY_RECT_AREAS = [[HALLWAY_X[0], HALLWAY_Y[0], HALLWAY_X_WIDTH[0], HALLWAY_Y_HEIGHT[0]],]
+
+
+# Lustron Room Name Constants
 BEDROOM_2 = 'BEDROOM_2'
 BEDROOM_2_X = [TODO, TODO]                    # X pixel location of upper left corner
 BEDROOM_2_Y = [TODO, TODO]
 BEDROOM_2_X_WIDTH = [TODO, TODO]
 BEDROOM_2_Y_HEIGHT = [TODO, TODO]
-MAX_AREA_INDEX_BEDROOM_2 = 1
+MAX_AREA_INDEX_BEDROOM_2 = 2
 BEDROOM_2_RECT_AREAS = [[BEDROOM_2_X[0], BEDROOM_2_Y[0], BEDROOM_2_X_WIDTH[0], BEDROOM_2_Y_HEIGHT[0]], \
                         [TODO, TODO, TODO, TODO]]
-
 
 BEDROOM_3 = 'BEDROOM_3'
 BEDROOM_3_X = [TODO]                    # X pixel location of upper left corner
@@ -73,4 +98,39 @@ BATHROOM_2_Y_HEIGHT = [TODO]
 MAX_AREA_INDEX_BATHROOM_2 = 1
 BATHROOM_2_RECT_AREAS = [[BATHROOM_2_X[0], BATHROOM_2_Y[0], BATHROOM_2_X_WIDTH[0], BATHROOM_2_Y_HEIGHT[0]],]
 
-MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
+# Interactive image filenames for square blur (aka V1) yellow light overlay
+LITE_HOUSE_SOURCE = 'static/images/LiteHouseV1_00000.png'
+LITE_HOUSE_SOURCE00000001 = 'static/images/LiteHouseV1_00001.png'
+LITE_HOUSE_SOURCE00000010 = 'static/images/LiteHouseV1_00010.png'
+LITE_HOUSE_SOURCE00000011 = 'static/images/LiteHouseV1_00011.png'
+LITE_HOUSE_SOURCE00000100 = 'static/images/LiteHouseV1_00100.png'
+LITE_HOUSE_SOURCE00000101 = 'static/images/LiteHouseV1_00101.png'
+LITE_HOUSE_SOURCE00000110 = 'static/images/LiteHouseV1_00110.png'
+LITE_HOUSE_SOURCE00000111 = 'static/images/LiteHouseV1_00111.png'
+LITE_HOUSE_SOURCE00001000 = 'static/images/LiteHouseV1_01000.png'
+LITE_HOUSE_SOURCE00001001 = 'static/images/LiteHouseV1_01001.png'
+LITE_HOUSE_SOURCE00001010 = 'static/images/LiteHouseV1_01010.png'
+LITE_HOUSE_SOURCE00001011 = 'static/images/LiteHouseV1_01011.png'
+LITE_HOUSE_SOURCE00001100 = 'static/images/LiteHouseV1_01100.png'
+LITE_HOUSE_SOURCE00001101 = 'static/images/LiteHouseV1_01101.png'
+LITE_HOUSE_SOURCE00001110 = 'static/images/LiteHouseV1_01110.png'
+LITE_HOUSE_SOURCE00001111 = 'static/images/LiteHouseV1_01111.png'
+LITE_HOUSE_SOURCE00010000 = 'static/images/LiteHouseV1_10000.png'
+LITE_HOUSE_SOURCE00010001 = 'static/images/LiteHouseV1_10001.png'
+LITE_HOUSE_SOURCE00010010 = 'static/images/LiteHouseV1_10010.png'
+LITE_HOUSE_SOURCE00010011 = 'static/images/LiteHouseV1_10011.png'
+LITE_HOUSE_SOURCE00010100 = 'static/images/LiteHouseV1_10100.png'
+LITE_HOUSE_SOURCE00010101 = 'static/images/LiteHouseV1_10101.png'
+LITE_HOUSE_SOURCE00010110 = 'static/images/LiteHouseV1_10110.png'
+LITE_HOUSE_SOURCE00010111 = 'static/images/LiteHouseV1_10111.png'
+LITE_HOUSE_SOURCE00011000 = 'static/images/LiteHouseV1_11000.png'
+LITE_HOUSE_SOURCE00011001 = 'static/images/LiteHouseV1_11001.png'
+LITE_HOUSE_SOURCE00011010 = 'static/images/LiteHouseV1_11010.png'
+LITE_HOUSE_SOURCE00011011 = 'static/images/LiteHouseV1_11011.png'
+LITE_HOUSE_SOURCE00011100 = 'static/images/LiteHouseV1_11100.png'
+LITE_HOUSE_SOURCE00011101 = 'static/images/LiteHouseV1_11101.png'
+LITE_HOUSE_SOURCE00011110 = 'static/images/LiteHouseV1_11110.png'
+LITE_HOUSE_SOURCE00011111 = 'static/images/LiteHouseV1_11111.png'
+
+
+LUSTRON_SOURCE = 'static/images/LustronV1_00000000.png'
