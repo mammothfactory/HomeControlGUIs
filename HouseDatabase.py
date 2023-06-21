@@ -1,5 +1,12 @@
 import sqlite3
+import bcrypt
+from pysqlitecipher import sqlitewrapper
 
+import GlobalConstants as GC
+
+USERNAME_COLUMN_NUMBER = 1
+PASSWORD_COLUMN_NUMBER = 2
+SALT_COLUMN_NUMBER = 3
 
 class HouseDatabase:
 
@@ -8,8 +15,9 @@ class HouseDatabase:
         self.conn = sqlite3.connect('house.db')
         self.cursor = self.conn.cursor()
 
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS UsersTable  (id INTEGER PRIMARY KEY, username TEXT, password TEXT, salt TEXT)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS LightStateTable (id INTEGER PRIMARY KEY, words TEXT)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS NetworkStateTable (id INTEGER PRIMARY KEY, words TEXT)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS NetworkStateTable (id INTEGER PRIMARY KEY, mermaidString TEXT)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS DoorStateTable (id INTEGER PRIMARY KEY, words TEXT)''')
         #self.cursor.execute('''CREATE TABLE IF NOT EXISTS employees (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)''')
 
@@ -22,20 +30,12 @@ class HouseDatabase:
 
 
     def queryDatabase(self, tableName):
-        self.cursor.execute("SELECT * FROM CountableNounsTable")
+        sqlStatement = f"SELECT * FROM {tableName}"
+        self.cursor.execute(sqlStatement)
+    
         result = self.cursor.fetchall()
 
-        return result 
-
-    def insertIntoCountableNounsTable(self, newWord):
-        """ Insert data into CountableNounsTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
-
-        Args:
-            db (WordListDatabase Object): _description_
-            newWord (String): Single word variable
-        """
-        
-        self.cursor.execute("INSERT INTO CountableNounsTable (words) VALUES (?)", (newWord,))
+        return result
 
     def insertIntoNetworkStateTable(self, currentNetworkState):
         """ Insert data into NetworkStateTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
@@ -48,19 +48,25 @@ class HouseDatabase:
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (currentNetworkState,))
 
     def insertIntoUserTable(self, un, pw):
-        """ Insert data into NetworkStateTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
+        """ Insert username, hashed password, and hash salt into the User Table if username is unqiue, otherwise ignore repeat user
 
         Args:
-            db (HouseDatabase Object): SQLite object store in a .db file
-            currentNetworkState (String): Network node configuration as String in NiceGUI Meraid formatted https://mermaid.js.org
+            un (String): Username to login, which can be either a 10 digit phone number or email address
+            pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
-        generatedSalt = bcrypt.gensalt()
-        hashedPassword = bcrypt.hashpw(pw.encode('utf-8'), generatedSalt)
+        self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + un + '%',))
+        results = self.cursor.fetchall()
         
-        self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (un, hashedPassword, generatedSalt))
+        if len(results) > 0:
+            pass #Ignore repeat username and DO NOTHING
+        else:
+            generatedSalt = bcrypt.gensalt()
+            hashedPassword = bcrypt.hashpw(pw.encode('utf-8'), generatedSalt)
+            
+            self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (un, hashedPassword, generatedSalt))
 
-    def searchCountableNounsTable(self, searchTerm):
-        self.cursor.execute("SELECT * FROM CountableNounsTable WHERE words LIKE ?", ('%' + searchTerm + '%',))
+    def searchUsersTable(self, searchTerm):
+        self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + searchTerm + '%',))
         results = self.cursor.fetchall()
 
         return results
@@ -70,30 +76,33 @@ if __name__ == "__main__":
     
     db = HouseDatabase()
 
-    db.insertIntoCountableNounsTable("House")
-    db.insertIntoCountableNounsTable("Dog")
+    db.insertIntoNetworkStateTable(GC.STATIC_DEFAULT_NETWORK)
     db.insertIntoUserTable("blazes.mfc.us", "TestPassword")
     
     db.commitChanges()
-
-    databaseList = db.queryDatabase("CountableNounsTable")
     
-    print(databaseList)
     password =  "TestPassword"
     usersDatabaseList = db.queryDatabase("UsersTable")
-    usernameColumnNumber = 1
-    passwordColumnNumber = 2
+    isUserFound = False
     for user in usersDatabaseList:
-        if user[usernameColumnNumber] == "blaze.sanders@gentex.com":
-            print(user[passwordColumnNumber])
+        if user[USERNAME_COLUMN_NUMBER] == "blaze.sanders@gentex.com":
+            isUserFound = True
+            print(user[PASSWORD_COLUMN_NUMBER])
+            storedHashedPassword = user[PASSWORD_COLUMN_NUMBER]
+            storedSalt = user[SALT_COLUMN_NUMBER]
+            
+            hashedPasssword = bcrypt.hashpw(password.encode('utf-8'), storedSalt)
     
-    if bcrypt.checkpw(password.encode('utf-8'), usersDatabaseList[0][2]):
-        print("Password matches!")
-    else:
-        print("Invalid password.")
+            if hashedPasssword == storedHashedPassword:
+                print("Password matches!")
+            else:
+                print("Invalid password.")
+        else:
+            isUserFound = isUserFound or False   
+    print(isUserFound) 
     
-    
-    databaseSearch = db.searchCountableNounsTable("Dog")
+    databaseSearch = db.searchUsersTable("blaze.s.d.a.sanders@gmail.com")
     print(databaseSearch)
 
     db.closeDatabase()
+    
