@@ -1,108 +1,198 @@
-import sqlite3
-import bcrypt
-from pysqlitecipher import sqlitewrapper
+#!/usr/bin/env python3
+"""
+__authors__    = ["Blaze Sanders"]
+__contact__    = "blazes@mfc.us"
+__copyright__  = "Copyright 2023"
+__license__    = "GPLv3"
+__status__     = "Development
+__deprecated__ = False
+__version__    = "0.1.0"
+"""
 
+# Disable PyLint linting messages
+# https://pypi.org/project/pylint/
+# pylint: disable=line-too-long
+
+# Standard Python libraries
+import sqlite3
+
+# 3rd paarty libraries
+import bcrypt
+
+# Internal modules
 import GlobalConstants as GC
 
 USERNAME_COLUMN_NUMBER = 1
 PASSWORD_COLUMN_NUMBER = 2
 SALT_COLUMN_NUMBER = 3
+FIRST_ROW_ID = 1
 
 class HouseDatabase:
+    """Store non user identifable data in local salted hash SQLite database
+    """
 
     def __init__(self):
+        """Constructor to initialize an HouseDatabase object
+        """
         # Connect to the database (create if it doesn't exist)
-        self.conn = sqlite3.connect('house.db')
+        self.conn = sqlite3.connect('House.db')
         self.cursor = self.conn.cursor()
 
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS UsersTable  (id INTEGER PRIMARY KEY, username TEXT, password TEXT, salt TEXT)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS LightStateTable (id INTEGER PRIMARY KEY, words TEXT)''')
+        # Create four tables in House.db for user login and hardware state data storage
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS UsersTable (id INTEGER PRIMARY KEY, username TEXT, password TEXT, salt TEXT)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS LightStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS NetworkStateTable (id INTEGER PRIMARY KEY, mermaidString TEXT)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS DoorStateTable (id INTEGER PRIMARY KEY, words TEXT)''')
-        #self.cursor.execute('''CREATE TABLE IF NOT EXISTS employees (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS DoorStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
 
-    def commitChanges(self):
+        # Initialize hardware states
+        self.cursor.execute("INSERT INTO LightStateTable (binaryState) VALUES (?)", (0,))
+        self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (GC.STATIC_DEFAULT_NETWORK,))
+        self.cursor.execute("INSERT INTO DoorStateTable (binaryState) VALUES (?)", (0,))
+
+    def commit_changes(self):
+        """ Commit data inserted into a table to the .db database file 
+        """
         self.conn.commit()
 
 
-    def closeDatabase(self):
+    def close_database(self):
+        """Close database to enable another sqlite3 instance to query this House.db database
+        """
         self.conn.close()
 
 
-    def queryDatabase(self, tableName):
+    def query_table(self, tableName: str):
+        """Return every row of a table from a database
+
+        Args:
+            tableName (String): Name of table in database to query
+
+        Returns:
+            List of tuples from a table, where each row in table is a tuple length n
+        """
         sqlStatement = f"SELECT * FROM {tableName}"
         self.cursor.execute(sqlStatement)
-    
+
         result = self.cursor.fetchall()
 
         return result
 
-    def insertIntoNetworkStateTable(self, currentNetworkState):
-        """ Insert data into NetworkStateTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
+
+    def insert_network_state_table(self, currentNetworkState: str):
+        """ Insert data into NetworkStateTable of database
 
         Args:
-            db (HouseDatabase Object): SQLite object store in a .db file
-            currentNetworkState (String): Network node configuration as String in NiceGUI Meraid formatted https://mermaid.js.org
+            currentNetworkState (String): Complete network node configuration in NiceGUI Meraid format https://mermaid.js.org
         """
-        
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (currentNetworkState,))
+        self.commit_changes()
 
-    def insertIntoUserTable(self, un, pw):
+
+    def update_light_state_table(self, currentLightState: int):
+        """ Updates the first row of the LightStateTable in database and delete new row created everytime HouseDatabase.py is run
+            0 = 0b0 = All lights OFF
+            15 = 0b1111 = Four lights ON
+            30 = 0b11110 = Four lights ON and one light OFF
+            
+        Args:
+            currentLightState (Integer): Current binary light state (on or off) of all lights in the house but stored as Integer
+        """
+        self.cursor.execute("UPDATE LightStateTable SET binaryState = ? WHERE id = ?", (currentLightState, FIRST_ROW_ID))
+        self.cursor.execute("DELETE FROM LightStateTable WHERE id = ?", (FIRST_ROW_ID+1,))
+        self.commit_changes()
+
+
+    def update_door_state_table(self, currentDoorState: int):
+        """ Updates the first row of the DoorStateTable in database and delete new row created everytime HouseDatabase.py is run
+            0 = 0b0 = All doors LOCKED
+            1 = 0b1 = One door LOCKED lights ON
+            2 = 0b10 = One door LOCKED and one door UNLOCKED
+            
+        Args:
+            currentDoorState (Integer): Current binary door state (LOCKED or UNLOCKED) of all doors in the house but stored as Integer
+        """
+        self.cursor.execute("UPDATE DoorStateTable SET binaryState = ? WHERE id = ?", (currentDoorState, FIRST_ROW_ID))
+        self.cursor.execute("DELETE FROM DoorStateTable WHERE id = ?", (FIRST_ROW_ID+1,))
+        self.commit_changes()
+
+
+    def insert_users_table(self, username: str, pw: str):
         """ Insert username, hashed password, and hash salt into the User Table if username is unqiue, otherwise ignore repeat user
 
         Args:
-            un (String): Username to login, which can be either a 10 digit phone number or email address
+            username (String): Username to login, which can be either a 10 digit phone number or email address
             pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
-        self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + un + '%',))
-        results = self.cursor.fetchall()
-        
+        results = self.search_users_table(username)
+
         if len(results) > 0:
             pass #Ignore repeat username and DO NOTHING
         else:
             generatedSalt = bcrypt.gensalt()
             hashedPassword = bcrypt.hashpw(pw.encode('utf-8'), generatedSalt)
-            
-            self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (un, hashedPassword, generatedSalt))
 
-    def searchUsersTable(self, searchTerm):
+            self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (username, hashedPassword, generatedSalt))
+
+        self.commit_changes()
+
+
+    def search_users_table(self, searchTerm: str):
         self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + searchTerm + '%',))
         results = self.cursor.fetchall()
 
         return results
 
+
+    def verify_password(self, enteredUsername: str, enteredPassword: str) -> bool:
+        """Vefify if username (phone number or email address) and password match 
+
+        Args:
+            enteredUsername (String): Santizied username input by a user into a GUI textbox
+            enteredPassword (String): Raw password input by a user into a GUI textbox
+
+        Returns:
+            bool: True if salted hash password in database matches the password entered by the user, False otherwise
+        """
+        usersTableList =  self.query_table("UsersTable")
+        isUserFound = False
+        for user in usersTableList:
+            if user[USERNAME_COLUMN_NUMBER] == enteredUsername:
+                isUserFound = True
+
+                storedHashedPassword = user[PASSWORD_COLUMN_NUMBER]
+                storedSalt = user[SALT_COLUMN_NUMBER]
+                hashedPasssword = bcrypt.hashpw(enteredPassword.encode('utf-8'), storedSalt)
+
+                if hashedPasssword == storedHashedPassword:
+                    return True
+                else:
+                    return False
+            else:
+                isUserFound = isUserFound or False
+
+
 if __name__ == "__main__":
-    print("Creating new table")
-    
+    print("Testing HouseDatabase.py")
+
     db = HouseDatabase()
 
-    db.insertIntoNetworkStateTable(GC.STATIC_DEFAULT_NETWORK)
-    db.insertIntoUserTable("blazes.mfc.us", "TestPassword")
-    
-    db.commitChanges()
-    
-    password =  "TestPassword"
-    usersDatabaseList = db.queryDatabase("UsersTable")
-    isUserFound = False
-    for user in usersDatabaseList:
-        if user[USERNAME_COLUMN_NUMBER] == "blaze.sanders@gentex.com":
-            isUserFound = True
-            print(user[PASSWORD_COLUMN_NUMBER])
-            storedHashedPassword = user[PASSWORD_COLUMN_NUMBER]
-            storedSalt = user[SALT_COLUMN_NUMBER]
-            
-            hashedPasssword = bcrypt.hashpw(password.encode('utf-8'), storedSalt)
-    
-            if hashedPasssword == storedHashedPassword:
-                print("Password matches!")
-            else:
-                print("Invalid password.")
-        else:
-            isUserFound = isUserFound or False   
-    print(isUserFound) 
-    
-    databaseSearch = db.searchUsersTable("blaze.s.d.a.sanders@gmail.com")
-    print(databaseSearch)
+    db.update_light_state_table(13)
+    db.update_door_state_table(2)
+    db.insert_network_state_table(GC.STATIC_DEFAULT_NETWORK)
 
-    db.closeDatabase()
+    db.insert_users_table("blazes@mfc.us", "TestPassword")
+    db.insert_users_table("blazes@mfc.us", "TestPassword")  # Test that duplicate usernames can't be entered into the datatbase
+    
+    if db.verify_password("blazes@mfc.us", "TestPassword"):
+        print("Salted hash password matches username")
+        
+    if not db.verify_password("blazes@mfc.us", "Bad"):
+        print("As expected the password did NOT match username")
+        
+    databaseSearch = db.search_users_table("blazes@mfc.us")
+    if len(databaseSearch) > 0:
+        print("Found username in database")
+    
+
+    db.close_database()
     

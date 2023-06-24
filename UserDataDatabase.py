@@ -4,6 +4,8 @@ from dotenv import dotenv_values    # Load environment variables for things user
 
 import bcrypt
 
+import GlobalConstants as GC
+
 STATIC_DEFAULT_NETWORK = '''
                 graph LR;
                     A[UniFi PoE Switch] --> B[ROOM: Master Bedroom];
@@ -23,11 +25,11 @@ STATIC_DEFAULT_NETWORK = '''
                 '''
 
 
-class WordListDatabase:
+class UserDataDatabase:
 
     def __init__(self):
         # Connect to the database (create if it doesn't exist)
-        self.conn = sqlite3.connect('wordlist.db')
+        self.conn = sqlite3.connect('UserData.db')
         self.cursor = self.conn.cursor()
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS CountableNounsTable (id INTEGER PRIMARY KEY, words TEXT)''')
@@ -38,7 +40,7 @@ class WordListDatabase:
         sqliteWrapperEnvironmentVariables = dotenv_values()
         sqliteWrapperPassword = sqliteWrapperEnvironmentVariables['SQLITE_WRAPPER_PASSWORD']
         
-        self.obj = sqlitewrapper.SqliteCipher(dataBasePath="wordlist.db", checkSameThread=False, password=sqliteWrapperPassword)
+        self.obj = sqlitewrapper.SqliteCipher(dataBasePath="UserData.db", checkSameThread=False, password=sqliteWrapperPassword)
         
         try:
             self.obj.createTable("encrytedUsersTable" , ["username", "password", "salt"], makeSecure=True , commit=True)
@@ -63,16 +65,6 @@ class WordListDatabase:
         result = self.cursor.fetchall()
 
         return result
-    
-    def insertIntoCountableNounsTable(self, newWord):
-        """ Insert data into CountableNounsTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
-
-        Args:
-            db (WordListDatabase Object): _description_
-            newWord (String): Single word variable
-        """
-        
-        self.cursor.execute("INSERT INTO CountableNounsTable (words) VALUES (?)", (newWord,))
      
     def insertIntoNetworkStateTable(self, currentNetworkState):
         """ Insert data into NetworkStateTable. When passing single variable into a row data must be followed by a comma, else (data1, data2, data3)
@@ -91,8 +83,33 @@ class WordListDatabase:
             un (String): Username to login, which can be either a 10 digit phone number or email address
             pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
-        self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + un + '%',))
-        results = self.cursor.fetchall()
+        #self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + un + '%',))
+        #results = self.cursor.fetchall()
+        
+        colList, results  = db.obj.getDataFromTable("encrytedUsersTable" , raiseConversionError = True , omitID = False)
+        print(results)
+        
+        isUserFound = False
+        for user in usersDatabaseList:
+            if user[GC] == "b.sandersnv@gmail.com":
+                isUserFound = True
+                print(user[passwordColumnNumber])
+                storedHashedPassword = user[passwordColumnNumber]
+                storedSalt = user[saltColumnNumber]
+
+                #try:
+                hashedPasssword = bcrypt.hashpw(password.encode('utf-8'), storedSalt)
+                
+                if hashedPasssword == storedHashedPassword:
+                    print("Password matches!")
+                else:
+                    print("Invalid password.")
+            else:
+                isUserFound = isUserFound or False
+
+        print(isUserFound)
+        
+        
         
         if len(results) > 0:
             pass #Ignore repeat username and DO NOTHING
@@ -100,7 +117,8 @@ class WordListDatabase:
             generatedSalt = bcrypt.gensalt()
             hashedPassword = bcrypt.hashpw(pw.encode('utf-8'), generatedSalt)
             
-            self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (un, hashedPassword, generatedSalt))
+            #self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (un, hashedPassword, generatedSalt))
+            self.obj.insertIntoTable("encrytedUsersTable" , [un, hashedPassword, generatedSalt], commit = True)
 
     def searchCountableNounsTable(self, searchTerm):
         self.cursor.execute("SELECT * FROM CountableNounsTable WHERE words LIKE ?", ('%' + searchTerm + '%',))
@@ -111,44 +129,21 @@ class WordListDatabase:
 if __name__ == "__main__":
     print("Creating new table")
     
-    db = WordListDatabase()
+    db = HomeDatabase()
 
-    db.insertIntoCountableNounsTable("House")
-    db.insertIntoCountableNounsTable("Dog")
-    db.insertIntoNetworkStateTable(STATIC_DEFAULT_NETWORK)
+    #db.insertIntoNetworkStateTable(STATIC_DEFAULT_NETWORK)
+    #db.closeDatabase()
     db.insertIntoUserTable("blaze.sanders@gentex.com", "GentexPassword")
     db.insertIntoUserTable("blazes.d.a.sanders@gmail.com", "TestPassword")
     db.insertIntoUserTable("b.sanders.nv@gmail.com", "BadPassword")
     
     db.commitChanges()
-
-    #databaseList = db.queryDatabase("CountableNounsTable")
-    #print(databaseList)
     
     password =  "BadPassword"
-    usersDatabaseList = db.queryDatabase("UsersTable")
     usernameColumnNumber = 1
     passwordColumnNumber = 2
     saltColumnNumber = 3
-    isUserFound = False
-    for user in usersDatabaseList:
-        if user[usernameColumnNumber] == "b.sandersnv@gmail.com":
-            isUserFound = True
-            print(user[passwordColumnNumber])
-            storedHashedPassword = user[passwordColumnNumber]
-            storedSalt = user[saltColumnNumber]
-
-            #try:
-            hashedPasssword = bcrypt.hashpw(password.encode('utf-8'), storedSalt)
-            
-            if hashedPasssword == storedHashedPassword:
-                print("Password matches!")
-            else:
-                print("Invalid password.")
-        else:
-            isUserFound = isUserFound or False
-
-    print(isUserFound)   
+       
     #databaseSearch = db.searchCountableNounsTable("Dog")
     #print(databaseSearch)
     #db.obj.insertIntoTable("unencrytedUsersTable" , ["blaze.d.a.sanders@gmail.com", "Password", "Salt"], commit = True)

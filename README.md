@@ -10,3 +10,5 @@ pip3 install paramiko <br>
 pip3 install supabase <br>
 pip3 install nicegui <br>
 pip3 install python-dotenv <br>
+pip3 install bcrypt <br>
+pip3 install pysqlitecipher <br>

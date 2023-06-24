@@ -134,3 +134,22 @@ LITE_HOUSE_SOURCE00011111 = 'static/images/LiteHouseV1_11111.png'
 
 
 LUSTRON_SOURCE = 'static/images/LustronV1_00000000.png'
+
+
+STATIC_DEFAULT_NETWORK = '''
+                graph LR;
+                    A[UniFi PoE Switch] --> B[ROOM: Master Bedroom];
+                    A[UniFi PoE Switch] --> F[ZimaBoard Server];
+                    F[CPU: ZimaBoard Server] --> E[DISPLAY: Main Central Control];
+                    B[ROOM: Master Bedroom] --> C[LIGHT: Master Bedroom]; 
+                    B[ROOM: Master Bedroom] --> D[DISPLAY: Master Bedroom];
+                    A[UniFi PoE Switch] --> G[LIGHT-Kitchen];
+                    
+                    style A color:#000000, fill:#03C04A, stroke:#000000;
+                    style B color:#000000, fill:#03COFF, stroke:#000000;
+                    style C color:#000000, fill:#FFC04A, stroke:#000000;
+                    style D color:#FFFFFF, fill:#1F1F1F, stroke:#000000;
+                    style E color:#FFFFFF, fill:#1F1F1F, stroke:#000000;
+                    style F color:#000000, fill:#B8191D, stroke:#000000;
+                    style G color:#000000, fill:#FFC04A, stroke:#000000;
+                '''

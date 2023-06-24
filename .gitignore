@@ -1,5 +1,6 @@
 .env
 .pyc
+.db
 Test.py
 /LiteHouse_VENV
 .DS_Store
