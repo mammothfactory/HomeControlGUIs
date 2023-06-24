@@ -27,11 +27,17 @@ from nicegui import app, ui
 from nicegui.events import MouseEventArguments
 from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
 
+# A lightweight, object-oriented Python state machine library
+# https://pypi.org/project/transitions/
+from transitions import Machine, State
+
 # Internal modules
 from PageKiteStartUp import *       # 
 import DataProcessing as DP         # 
 import GlobalConstants as GC        # Global 
 import TwilioHelper as TH 
+from HouseDatabase import HouseDatabase
+import UserDataDatabase
 
 
 try:  # Importing externally developed libraries
@@ -60,6 +66,8 @@ isDarkModeOn = False
 userLoggedIn = False
 darkMode = ui.dark_mode()
 sanitizedPhoneNumber = '555555555'
+sanitizedOtpCode = '123456'
+username = '55555555'
 
 isMasterBedroomLightsOn = False
 ismasterBathroomLightsOn = False
@@ -94,50 +102,59 @@ def login_user():
     userDataForm.visible = userLoggedIn
     ui.update(userDataForm)
 
-def attempt_phone_login(phoneNumber, invalidPhoneNumberLabel, signInGrid):
-    # TODO Connect to supabase
+def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid):
+    global username
     
+    isValidPhoneNumber = True
     countryCodePhoneNumber = '+1' + phoneNumber
-    user = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
-    
-    otpCode = random.randint(100000, 999999)
-    TH.send_otp_code(otpCode)
-    
-    session = supabase.auth.verify_otp(countryCodePhoneNumber)
-    
-    
-    #verifyOtp(phoneNumber, '567864', 'sms')
-    """
-    session = supabase.auth.verifyOtp({
-    phone: '+13334445555',
-    token: '123456',
-    type: 'sms',
-    })
-   """
 
-    if phoneNumber == '5303668296':
-        userFound = True
-    else:
-        userFound = False
+    if len(phoneNumber) < 10:
+        isValidPhoneNumber = False
 
-    if not userFound:
-        invalidPhoneNumberLabel.set_text(phoneNumber + ' not found, create an account')
+    if not isValidPhoneNumber:
+        invalidPhoneNumberLabel.set_text(phoneNumber + ' is not a valid number')
         invalidPhoneNumberLabel.tailwind.font_weight('extrabold').text_color('red-600')
         invalidPhoneNumberLabel.visible = True
     else:
+        try:       
+            user = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
+        finally:
+            enterPhoneNumberGrid.visible = False
+            signInGrid.visible = True
+            username = countryCodePhoneNumber
+
+def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
+    global username
+    print(f'ATTEMPTING SIGN IN WITH username: {username} with {sanitizedOtpCode}')
+    
+    res = supabase.auth.verify_otp({"phone": username, "token": str(sanitizedOtpCode), "type": 'sms'})
+    db1.insert_users_table(username, sanitizedOtpCode)
+    
+    if db1.verify_password(username, sanitizedOtpCode):
+        userFound = True
+    else:
+        userFound = False
+        
+    if userFound:
         userDataForm.visible = True
         signInGrid.visible = False
+    else:
+        invalidOtpLabel.set_text(sanitizedOtpCode + ' is not a valid OTP code')
+        invalidOtpLabel.tailwind.font_weight('extrabold').text_color('red-600')
+        invalidOtpLabel.visible = True
 
-def reset_login_gui(invalidPhoneNumberLabel, signInGrid, userDataForm):
+def reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm):
     """ Toggle the visibility of labels and grid in the left drawer to reset GUI to boot state
 
     Args:
         invalidPhoneNumberLabel (ui.label()): _description_
+        enterPhoneNumberGrid (ui.grid()): _description_
         signInGrid (ui.grid()): _description_
         userDataForm (ui.grid()): _description_
     """
     invalidPhoneNumberLabel.visible = False
-    signInGrid.visible = True
+    enterPhoneNumberGrid.visible = True
+    signInGrid.visible = False
     userDataForm.visible = False
 
 def switch_tab(msg: Dict) -> None:
@@ -158,6 +175,14 @@ def sanitize_phone_number(text):
     invalidPhoneNumberLabel.visible = False
 
     return sanitizedPhoneNumber
+
+def sanitize_otp_code(text) -> str:
+    global sanitizedOtpCode
+    
+    sanitizedOtpCode = text.replace(" ", "")
+    sanitizedOtpCode = sanitizedOtpCode.replace("-", "")
+    
+    return sanitizedOtpCode
 
 def determine_room_mouse_handler(e: MouseEventArguments):
     global isMasterBedroomLightsOn 
@@ -292,6 +317,8 @@ if __name__ in {"__main__", "__mp_main__"}:
     darkMode.disable()
     #serveApp = PageKiteStartUp(homeName)
     
+    db1 = HouseDatabase()
+    
     supabaseEnvironmentVariables = dotenv_values()
     url = supabaseEnvironmentVariables['SUPABASE_URL']
     key = supabaseEnvironmentVariables['SUPABASE_KEY']
@@ -320,26 +347,38 @@ if __name__ in {"__main__", "__mp_main__"}:
 
 
     with ui.left_drawer().classes('bg-white-100') as left_drawer:
-        with ui.grid(columns=1):   
+        with ui.grid(columns=1):
             darkModeSwitch = ui.switch('Enable Dark Mode', on_change=toggle_dark_mode)
             ui.label('')
             
-            signInGrid = ui.grid(columns=1)
-            with signInGrid:
+            enterPhoneNumberGrid = ui.grid(columns=1)
+            with enterPhoneNumberGrid:
+                
+                controlSystem = enterPhoneNumberGrid
+                Machine(model=controlSystem, states=DP.possibleLoginStates, transitions=DP.loginTransitions, initial='start')
                 
                 invalidPhoneNumberLabel = ui.label()
                 invalidPhoneNumberLabel.visible = False
-                ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
+                userInputTextBox = ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
                                 on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
                                 validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
                 
-                signInButton = ui.button('SIGN IN', on_click=lambda e: attempt_phone_login(sanitizedPhoneNumber, invalidPhoneNumberLabel, signInGrid))
+                userInputButton = ui.button('NEXT', on_click=lambda e: send_otp_password(sanitizedPhoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid))
                 
-                #draw_signin_with_apple_button()
-                #draw_signin_with_google_button()
-
                 ui.label('')
                 ui.label('')
+            
+        
+            signInGrid = ui.grid(columns=1)
+            signInGrid.visible = False
+            with signInGrid:
+                invalidOtpLabel = ui.label()
+                invalidOtpLabel.visible = False
+                optInputTextBox = ui.input(label='Enter 6 digit code', placeholder='e.g. 123456', \
+                         on_change=lambda e: invalidOtpLabel.set_text(sanitize_otp_code(e.value)), \
+                         validation={'Code too long, should be 6 digits': lambda value: len(sanitizedOtpCode) <= 6})
+                
+                signInButton = ui.button('SIGN IN', on_click=lambda e: sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid))
 
         userDataForm = ui.grid(columns=2)
         userDataForm.visible = False
@@ -353,7 +392,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             ui.label('Home GPS:').tailwind.font_weight('extrabold')
             ui.label("28.54250516114, -81.372488625")
             
-            signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, signInGrid, userDataForm))
+            signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm))
         
 
 

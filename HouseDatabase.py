@@ -48,7 +48,8 @@ class HouseDatabase:
         self.cursor.execute("INSERT INTO LightStateTable (binaryState) VALUES (?)", (0,))
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (GC.STATIC_DEFAULT_NETWORK,))
         self.cursor.execute("INSERT INTO DoorStateTable (binaryState) VALUES (?)", (0,))
-
+        self.conn.commit()
+        
     def commit_changes(self):
         """ Commit data inserted into a table to the .db database file 
         """
@@ -117,20 +118,21 @@ class HouseDatabase:
 
 
     def insert_users_table(self, username: str, pw: str):
-        """ Insert username, hashed password, and hash salt into the User Table if username is unqiue, otherwise ignore repeat user
+        """ Insert username, hashed password, and hash salt into the User Table if username is unqiue, otherwise update password
 
         Args:
             username (String): Username to login, which can be either a 10 digit phone number or email address
             pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
         results = self.search_users_table(username)
-
+        
+        generatedSalt = bcrypt.gensalt()
+        hashedPassword = bcrypt.hashpw(str(pw).encode('utf-8'), generatedSalt)
+        
         if len(results) > 0:
-            pass #Ignore repeat username and DO NOTHING
+            idToUpdate = results[0][0]
+            self.cursor.execute("UPDATE UsersTable SET username = ?, password = ?, salt = ? WHERE id = ?", (username, hashedPassword, generatedSalt, idToUpdate))
         else:
-            generatedSalt = bcrypt.gensalt()
-            hashedPassword = bcrypt.hashpw(pw.encode('utf-8'), generatedSalt)
-
             self.cursor.execute("INSERT INTO UsersTable (username, password, salt) VALUES (?, ?, ?)", (username, hashedPassword, generatedSalt))
 
         self.commit_changes()
@@ -181,9 +183,9 @@ if __name__ == "__main__":
     db.insert_network_state_table(GC.STATIC_DEFAULT_NETWORK)
 
     db.insert_users_table("blazes@mfc.us", "TestPassword")
-    db.insert_users_table("blazes@mfc.us", "TestPassword")  # Test that duplicate usernames can't be entered into the datatbase
+    db.insert_users_table("blazes@mfc.us", "NewPassword")  # Test that duplicate usernames creates new password
     
-    if db.verify_password("blazes@mfc.us", "TestPassword"):
+    if db.verify_password("blazes@mfc.us", "NewPassword"):
         print("Salted hash password matches username")
         
     if not db.verify_password("blazes@mfc.us", "Bad"):
