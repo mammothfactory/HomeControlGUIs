@@ -17,7 +17,21 @@ __doc__        = "Generate a tab based GUI to control LiteHouse and Lustron hous
 import re
 import csv
 
+# A lightweight, object-oriented Python state machine library
+# https://pypi.org/project/transitions/
+from transitions import Machine, State
+
+
 import GlobalConstants as GC
+
+# Global variables of DataProcessing.py that define the overall State Machine
+possibleLoginStates = [State(name='BOOTING_UP'), State(name='LOGGED_OUT'), State(name='WAITING_FOR_OTP'), State(name='SIGNED_IN')]
+
+loginTransitions = [{'trigger': 'SEND_OTP', 'source': 'LOGGED_OUT', 'dest': 'WAITING_FOR_OTP'},
+                    {'trigger': 'VALID_LOGIN', 'source': 'WAITING_FOR_OTP', 'dest': 'SIGNED_IN'},
+                    {'trigger': 'start', 'source': 'BOOTING_UP', 'dest': 'LOGGED_OUT'},]
+
+
 currentNetworkDiagram = ''''''
 
 # https://mermaid.js.org
