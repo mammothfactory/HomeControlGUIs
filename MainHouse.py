@@ -422,4 +422,4 @@ if __name__ in {"__main__", "__mp_main__"}:
                 newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
                 ui.mermaid(newNetworkDiagram)
                 
-    ui.run(native=GC.RUN_ON_NATIVE_OS)
+    ui.run(native=GC.RUN_ON_NATIVE_OS, port=8181)
