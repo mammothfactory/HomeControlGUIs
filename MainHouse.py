@@ -27,9 +27,6 @@ from nicegui import app, ui
 from nicegui.events import MouseEventArguments
 from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
 
-# A lightweight, object-oriented Python state machine library
-# https://pypi.org/project/transitions/
-from transitions import Machine, State
 
 # Internal modules
 from PageKiteStartUp import *       # 
@@ -355,8 +352,6 @@ if __name__ in {"__main__", "__mp_main__"}:
             enterPhoneNumberGrid = ui.grid(columns=1)
             with enterPhoneNumberGrid:
                 
-                controlSystem = enterPhoneNumberGrid
-                Machine(model=controlSystem, states=DP.possibleLoginStates, transitions=DP.loginTransitions, initial='start')
                 
                 invalidPhoneNumberLabel = ui.label()
                 invalidPhoneNumberLabel.visible = False
