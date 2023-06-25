@@ -296,15 +296,16 @@ def draw_light_highlight(ii, isLightOn, roomName):
         else: ui.notify(message='INVALID LIGHT STATE: Refresh your browser window')        
                                                
     elif houseType == GC.LUSTRON_SOURCE:
+        """ CAN"T USE match until python3.11 can be installed on Zimaboard
         match lustronLightState:
             case 0b0000_0000:
                 ii.set_source(GC.LUSTRON_SOURCE)
             case _:
                 ui.notify(message='INVALID LIGHT STATE: Refresh your browser window')
-
+        """
     else:
         print('INVALID HOUSE TYPE')
-
+        
 
 def draw_signin_with_google_button():
     pass
@@ -393,10 +394,8 @@ if __name__ in {"__main__", "__mp_main__"}:
             ui.label("28.54250516114, -81.372488625")
             
             signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm))
-        
 
 
-        
     with ui.page_sticky(position='bottom-right', x_offset=20, y_offset=20):
         infoButton = ui.button(on_click=footer.toggle).props('fab icon=info')
 
