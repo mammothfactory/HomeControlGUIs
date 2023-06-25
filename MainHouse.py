@@ -32,7 +32,7 @@ from dotenv import dotenv_values    # Load environment variables for usernames, 
 from PageKiteStartUp import *       # 
 import DataProcessing as DP         # 
 import GlobalConstants as GC        # Global 
-import TwilioHelper as TH 
+#import TwilioHelper as TH 
 from HouseDatabase import HouseDatabase
 import UserDataDatabase
 
