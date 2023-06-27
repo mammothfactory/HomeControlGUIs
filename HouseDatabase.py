@@ -12,6 +12,7 @@ __version__    = "0.1.0"
 # Disable PyLint linting messages
 # https://pypi.org/project/pylint/
 # pylint: disable=line-too-long
+# pylint: disable=invalid-name
 
 # Standard Python libraries
 import sqlite3
@@ -28,11 +29,11 @@ SALT_COLUMN_NUMBER = 3
 FIRST_ROW_ID = 1
 
 class HouseDatabase:
-    """Store non user identifable data in local salted hash SQLite database
+    """ Store non user identifable data in local salted hash SQLite database
     """
 
     def __init__(self):
-        """Constructor to initialize an HouseDatabase object
+        """ Constructor to initialize an HouseDatabase object
         """
         # Connect to the database (create if it doesn't exist)
         self.conn = sqlite3.connect('House.db')
@@ -49,7 +50,8 @@ class HouseDatabase:
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (GC.STATIC_DEFAULT_NETWORK,))
         self.cursor.execute("INSERT INTO DoorStateTable (binaryState) VALUES (?)", (0,))
         self.conn.commit()
-        
+
+
     def commit_changes(self):
         """ Commit data inserted into a table to the .db database file 
         """
@@ -57,19 +59,19 @@ class HouseDatabase:
 
 
     def close_database(self):
-        """Close database to enable another sqlite3 instance to query this House.db database
+        """ Close database to enable another sqlite3 instance to query this House.db database
         """
         self.conn.close()
 
 
     def query_table(self, tableName: str):
-        """Return every row of a table from a database
+        """ Return every row of a table from a database
 
         Args:
             tableName (String): Name of table in database to query
 
         Returns:
-            List of tuples from a table, where each row in table is a tuple length n
+            List: Tuples from a table, where each row in table is a tuple length n
         """
         sqlStatement = f"SELECT * FROM {tableName}"
         self.cursor.execute(sqlStatement)
@@ -125,10 +127,10 @@ class HouseDatabase:
             pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
         results = self.search_users_table(username)
-        
+
         generatedSalt = bcrypt.gensalt()
         hashedPassword = bcrypt.hashpw(str(pw).encode('utf-8'), generatedSalt)
-        
+
         if len(results) > 0:
             idToUpdate = results[0][0]
             self.cursor.execute("UPDATE UsersTable SET username = ?, password = ?, salt = ? WHERE id = ?", (username, hashedPassword, generatedSalt, idToUpdate))
@@ -139,6 +141,14 @@ class HouseDatabase:
 
 
     def search_users_table(self, searchTerm: str):
+        """ Search UsersTable table for every occurrence of a string
+
+        Args:
+            searchTerm (str): _description_
+
+        Returns:
+            List: Of Tuples from a UsersTable, where each List item is a row in the table containing the exact search term
+        """
         self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + searchTerm + '%',))
         results = self.cursor.fetchall()
 
@@ -184,17 +194,17 @@ if __name__ == "__main__":
 
     db.insert_users_table("blazes@mfc.us", "TestPassword")
     db.insert_users_table("blazes@mfc.us", "NewPassword")  # Test that duplicate usernames creates new password
-    
+
     if db.verify_password("blazes@mfc.us", "NewPassword"):
         print("Salted hash password matches username")
-        
+
     if not db.verify_password("blazes@mfc.us", "Bad"):
         print("As expected the password did NOT match username")
-        
+
     databaseSearch = db.search_users_table("blazes@mfc.us")
     if len(databaseSearch) > 0:
         print("Found username in database")
-    
+
 
     db.close_database()
     
