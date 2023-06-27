@@ -5,3 +5,4 @@ Test.py
 /LiteHouse_VENV
 .DS_Store
 __pycache__/
+House.db

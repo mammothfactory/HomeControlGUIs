@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 __authors__    = ["Blaze Sanders"]
-__contact__    = "blaze.d.a.sanders@gmail.com"
+__contact__    = "blazes@mfc.us"
 __copyright__  = "Copyright 2023"
 __license__    = "GPLv3"
 __status__     = "Development
@@ -10,6 +10,10 @@ __version__    = "0.0.1"
 __doc__        = "CONSTANTS for both LiteHouse and Lustron home configurations"
 """
 TODO = -1  
+
+# Disable PyLint linting messages
+# https://pypi.org/project/pylint/
+# pylint: disable=invalid-name
 
 ROOM_DEFINITION = 4
 VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH = 10
@@ -20,15 +24,19 @@ LUSTRON = 'LUSTRON'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-MAC_HOME_DIRECTORY = '/Users/mars/'
-LINUX_HOME_DIRECTORY = '/TODO'         # TODO ZimaBaord file directory structure
+MAC_HOME_DIRECTORY   = '/Users/mars/MammothGithub/HomeControlGUIs'
+LINUX_HOME_DIRECTORY = '/home/casaos/HomeControlGUIs'
 
 MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
 
-# LiteHouse Room Name Constants
+# LiteHouse Room Name Constants (a room can be defined by multiple rectangles)
+# ?_X is the horizontal image pixel location of upper left corner of a rectangle in a room
+# ?_Y is the vertical image pixel location of upper left corner of a room
+# ?_X_WIDTH is the distance in image pixels between the far left and right of a rectangle in a room
+# ?_Y_HEIGHT is the distance in image pixels between the top and bottom of a rectangle in a room
 MASTER_BEDROOM = 'MASTER_BEDROOM'
 MASTER_BEDROOM_SWITCH_PORT = 10
-MASTER_BEDROOM_X = [1986]               # X pixel location of upper left corner
+MASTER_BEDROOM_X = [1986]
 MASTER_BEDROOM_Y = [97]
 MASTER_BEDROOM_X_WIDTH = [806]
 MASTER_BEDROOM_Y_HEIGHT = [815]
