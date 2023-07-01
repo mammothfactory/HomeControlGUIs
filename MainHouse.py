@@ -29,10 +29,9 @@ from dotenv import dotenv_values    # Load environment variables for usernames, 
 
 
 # Internal modules
-from PageKiteStartUp import *       # 
+from PageKiteAPI import * 
 import DataProcessing as DP         # 
 import GlobalConstants as GC        # Global 
-#import TwilioHelper as TH 
 from HouseDatabase import HouseDatabase
 import UserDataDatabase
 
@@ -47,6 +46,14 @@ try:  # Importing externally developed libraries
     # Enable control of ports on an Ethernet PoE Switch using telnet
     # https://www.paramiko.org/installing.html
     import paramiko
+    
+    # Reverse lookup a street address from GPS and vice verse & GeoLocate based on cell towers and wifi
+    # https://github.com/googlemaps/google-maps-services-python
+    # https://developers.google.com/maps/documentation/geolocation/overview
+    import googlemaps
+    
+    # VPC
+    # https://www.linode.com/blog/networking/go-private-with-vlans-and-vpcs/
 
 except ImportError:
     print("ERROR: The supabase python module didn't import correctly! ")
@@ -59,21 +66,23 @@ except ImportError:
         print("Follow supabase manual install instructions at https://pypi.org/project/supabase/")
 
 # Global Variables
-isDarkModeOn = False
+isDarkModeOn = False            # Application boots up in light mode
+darkMode = ui.dark_mode()       
+
 userLoggedIn = False
-darkMode = ui.dark_mode()
-sanitizedPhoneNumber = '555555555'
+sanitizedPhoneNumber = '5555555555'
 sanitizedOtpCode = '123456'
-username = '55555555'
+username = sanitizedPhoneNumber
 
 isMasterBedroomLightsOn = False
 ismasterBathroomLightsOn = False
 houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
 liteHouseLightState = 0b0000_0000
 lustronLightState = 0b0000_0000
-homeName = 'mammothlitehouse'
+homeName = 'MyHouse'
 homeAddress = '407 E Central Blvd, Orlando, FL 32801'
-pageKiteURL = homeName + 'mammothlitehouse.pagekite.com'    #TODO so that users can switch their home names 
+litehousePageKiteDomain = 'litehouse.pagekite.me'
+lustronPageKiteDomain = 'lustron.pagekite.me'
 tabNames = ['lights', 'cameras', 'doors', 'network']
 
 # Create directory and URL for local storage of images
@@ -99,6 +108,7 @@ def login_user():
     userDataForm.visible = userLoggedIn
     ui.update(userDataForm)
 
+
 def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid):
     global username
     
@@ -120,6 +130,7 @@ def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid
             signInGrid.visible = True
             username = countryCodePhoneNumber
 
+
 def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
     global username
     print(f'ATTEMPTING SIGN IN WITH username: {username} with {sanitizedOtpCode}')
@@ -139,6 +150,10 @@ def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
         invalidOtpLabel.set_text(sanitizedOtpCode + ' is not a valid OTP code')
         invalidOtpLabel.tailwind.font_weight('extrabold').text_color('red-600')
         invalidOtpLabel.visible = True
+        
+    # TODO Force user to give home a unquie name
+    # Add this new subdomain to database and use a session JWT (Java Web Token)
+
 
 def reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm):
     """ Toggle the visibility of labels and grid in the left drawer to reset GUI to boot state
@@ -149,7 +164,9 @@ def reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, u
         signInGrid (ui.grid()): _description_
         userDataForm (ui.grid()): _description_
     """
+    supabase.auth.sign_out()
     invalidPhoneNumberLabel.visible = False
+    invalidOtpLabel.visible = False
     enterPhoneNumberGrid.visible = True
     signInGrid.visible = False
     userDataForm.visible = False
@@ -334,6 +351,8 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
     
+    pageKite = PageKiteAPI('litehouse.pagekite.me')
+    
     with ui.header().classes(replace='row items-center') as header:
         ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')
         with ui.element('q-tabs').on('update:model-value', switch_tab) as tabs:
@@ -422,4 +441,4 @@ if __name__ in {"__main__", "__mp_main__"}:
                 newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
                 ui.mermaid(newNetworkDiagram)
                 
-    ui.run(native=GC.RUN_ON_NATIVE_OS, port=8181)
+    ui.run(native=GC.RUN_ON_NATIVE_OS, port=GC.LOCAL_HOST_PORT_FOR_GUI)

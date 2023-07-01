@@ -27,6 +27,8 @@ TUNNEL_TO_INTERNET = True
 MAC_HOME_DIRECTORY   = '/Users/mars/MammothGithub/HomeControlGUIs'
 LINUX_HOME_DIRECTORY = '/home/casaos/HomeControlGUIs'
 
+LOCAL_HOST_PORT_FOR_GUI = 8181
+
 MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
 
 # LiteHouse Room Name Constants (a room can be defined by multiple rectangles)
@@ -161,3 +163,34 @@ STATIC_DEFAULT_NETWORK = '''
                     style F color:#000000, fill:#B8191D, stroke:#000000;
                     style G color:#000000, fill:#FFC04A, stroke:#000000;
                 '''
+
+
+# Error Codes
+# https://pagekite.net/support/service_api_reference/#error_codes
+BAD_VALUE = "Bad value for"
+BAD_KEY = "Invalid key"
+BAD_USERS = "Invalid e-mails or kite names"
+BAD_GROUP = "Invalid group ID"
+DNS_ERROR = "DNS Error"
+DOMAIN = "Domain unavailable"
+domaintaken = "Domain is already in use"
+email = "Invalid e-mail address"
+emailtaken = "E-mail is already in use"
+error = "Internal Error"
+kite_gone = "No such kite, was it already deleted?"
+no_account = "No such account exists"
+no_groups = "You cannot create any more groups"
+no_members = "That would exceed your membership limit!"
+no_root_ns = "Could not find root nameserver"
+no_service = "Not a service domain"
+not_cname = "CNAME record not found"
+not_in_group = "You are not in a group"
+pass_mismatch = "Passwords do not match"
+pass_short = "Passwords is too short"
+pleaselogin = "Please log in"
+subdomain = "Invalid kite name"
+terms = "Please accept the terms and conditions"
+unauthorized = "Access Denied"
+unchanged = "Nothing has changed"
+undo_key = "Invalid Undo Key"
+unregistered = "Not a registered kite"

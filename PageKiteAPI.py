@@ -55,20 +55,18 @@ undo_key = "Invalid Undo Key"
 unregistered = "Not a registered kite"
 
 class PageKiteAPI():
-    """Create base pagekite.me domains and add & remove subdomains for each house
+    """Log into base pagekite.me domains and add & remove subdomains for each house updating the .pagekite.rc file in home directory
     """
 
     def __init__(self, pagekiteDomain: str):
-        """Create and run new base kite using top level domain names
+        """Create session credentials for base Page Kite domain names
            See https://pagekite.net/support/service_api_reference
-
-           cd /Users/mars
-           rm .pagekite.rc  to delete an old account
-            
+ 
         Args:
             pagekiteDomain (String): Base URL to add subdomains to
         """
-        self.subdomain = []
+        self.ActiveSubdomain = ''
+        self.processCode  = -1
         self.pagekiteDomain = pagekiteDomain
         
         pagekiteEnvironmentVariables = dotenv_values()
@@ -95,47 +93,75 @@ class PageKiteAPI():
         revokeAll = False
         self.proxy.logout(self.accountIdentifer, self.accessCredential, revokeAll)
 
+    def run_kite(self):
+        url = f'{self.ActiveSubdomain.lower()}.{self.pagekiteDomain}'
         
-    def remove_subdomain_kite(self, homeNameSubDomain: str):
+        command = ['python3', 'pagekite.py', f'{GC.LOCAL_HOST_PORT_FOR_GUI}', url]
+        backgroundPageKiteProcess = subprocess.Popen(command)
+        self.processCode = backgroundPageKiteProcess.pid
+        print(f'PID = {self.processCode}')
+
+    def stop_kite(self):
+        subprocess.call(['kill', '-9', f'{self.processCode}'])
+
+    def get_kite_flying_status(self):
+        statusCode, data = self.proxy.get_kite_stats(self.accountIdentifer, self.accessCredential)
+        print(f'Current running URLs are {data}')
+        return data
+        
+    def remove_subdomain_kite(self, homeNameSubDomain: str) -> str:
         """_summary_
            data = 'No such kite, was it already deleted?
            data = 'Deleted: apitest.litehouse.pagekite.me'
         """
         url  = f'{homeNameSubDomain.lower()}.{self.pagekiteDomain}'
         forceDelete = True
-        ok, data = self.proxy.admin_delete_kites(self.accountIdentifer, self.accessCredential, [url], forceDelete)
+        statusCode, data = self.proxy.admin_delete_kites(self.accountIdentifer, self.accessCredential, [url], forceDelete)
 
         print(data)
         
-        # Check Error Code
+        # Check API Error Code returned by admin_delete_kites()
         if data == kite_gone:
-            return "Subdomain Kite doesn't exist or url has typo"
+            return "Subdomain doesn't exist or the URL has a typo"
 
-    def add_subdomain_kite(self, homeNameSubDomain: str) -> str:
+    def add_subdomain_kite(self, homeNameSubDomain: str) -> bool:
         """_summary_
        
         """
         # Check kite status (if it already exists) and  proxy.get_kite_stats(a, c)
-
-        url  = f'{homeNameSubDomain.lower()}.{self.pagekiteDomain}'
-        print(f'URL to add is: {url}')
-        checkCnames = False
-        ok, data = self.proxy.add_kite(self.accountIdentifer, self.accessCredential, url, checkCnames)
+        newUrlAdded = False
         
-        print(data)
+        statusDictionary = self.get_kite_flying_status()
+        url  = f'{homeNameSubDomain.lower()}.{self.pagekiteDomain}'
+        
+        if url in statusDictionary:
+            print("URL already exists")
+        else:
+            checkCnames = False   # Change to True if using a fully custom domain
+            statusCode, data = self.proxy.add_kite(self.accountIdentifer, self.accessCredential, url, checkCnames)
+            self.ActiveSubdomain = homeNameSubDomain
+            newUrlAdded = True
+        
+        return newUrlAdded
 
 if __name__ == "__main__":
     litehousePageKiteDomain = 'litehouse.pagekite.me'
-    homeName = "apitest3"
+    homeName = "7196390839"
 
-    litehouse = PageKiteAPI(litehousePageKiteDomain)
+    apiObject = PageKiteAPI(litehousePageKiteDomain)
     sleep(5)
-    litehouse.add_subdomain_kite(homeName)
+    apiObject.add_subdomain_kite(homeName)
+    apiObject.get_kite_flying_status()
     sleep(5)
-    litehouse.remove_subdomain_kite(homeName)
+    apiObject.add_subdomain_kite(homeName)
     sleep(5)
-    litehouse.logout()
+    apiObject.run_kite()
+    #apiObject.remove_subdomain_kite(homeName)
+    sleep(10)
+    apiObject.get_kite_flying_status()
     sleep(5)
+    apiObject.logout()
+
 
 """
 # Add services to foo.pagekite.me:
