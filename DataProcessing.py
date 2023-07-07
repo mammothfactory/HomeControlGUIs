@@ -138,7 +138,7 @@ def output_network_diagram(input: list) -> str:
 
     return newNetworkDiagram
 
-def csv_to_List(col, csv_file=GC.MAC_HOME_DIRECTORY+'TODO.csv'):
+def csv_to_List(col, csv_file=GC.MAC_CODE_DIRECTORY+'TODO.csv'):
     result = []
     with open(csv_file, 'r') as file:
         reader = csv.reader(file)

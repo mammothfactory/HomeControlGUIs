@@ -1,4 +1,5 @@
 .env
+.VENV
 .pyc
 .db
 Test.py

@@ -58,7 +58,7 @@ class PageKiteAPI():
     """Log into base pagekite.me domains and add & remove subdomains for each house updating the .pagekite.rc file in home directory
     """
 
-    def __init__(self, pagekiteDomain: str):
+    def __init__(self, pagekiteDomain: str, configuration):
         """Create session credentials for base Page Kite domain names
            See https://pagekite.net/support/service_api_reference
  
@@ -69,10 +69,10 @@ class PageKiteAPI():
         self.processCode  = -1
         self.pagekiteDomain = pagekiteDomain
         
-        pagekiteEnvironmentVariables = dotenv_values()
-        pagekiteUserName = pagekiteEnvironmentVariables['PAGE_KITE_EMAIL']
-        pagekitePassword = pagekiteEnvironmentVariables['PAGE_KITE_PASSWORD']
-        pagekiteKey = pagekiteEnvironmentVariables['PAGE_KITE_KEY']
+        #pagekiteEnvironmentVariables = dotenv_values()
+        pagekiteUserName = configuration['PAGE_KITE_EMAIL']
+        pagekitePassword = configuration['PAGE_KITE_PASSWORD']
+        pagekiteKey = configuration['PAGE_KITE_KEY']
         
         self.proxy = xmlrpc.client.ServerProxy(API_URL)
         ok, creds = self.proxy.login(pagekiteDomain, pagekitePassword, '')

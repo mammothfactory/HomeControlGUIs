@@ -7,7 +7,7 @@ __license__    = "GPLv3"
 __status__     = "Development
 __deprecated__ = False
 __version__    = "0.0.1"
-__doc__        = "Generate a tab based Progressice Web App GUI to control both the LiteHouse and Lustron home styles"
+__doc__        = "Generate a tab based Progressive Web App GUI to control both the LiteHouse and Lustron home styles"
 """
 
 # Disable PyLint linting messages that seem unuseful
@@ -16,54 +16,65 @@ __doc__        = "Generate a tab based Progressice Web App GUI to control both t
 # pylint: disable=global-statement
 
 # Standard Python libraries
-import time                         # TODO Remove Enable program pausing
-from datetime import datetime       # TODO Remove if not used
-from typing import Dict             # Enable creation of GUI tabs
-import subprocess                   # Enable the running of CLI commands like python3 Main.py
-import random                       # Used to generate 2FA / OTP codes for telephone login
+import sys
+from time import sleep             # Enable pausing of the python program
+from datetime import datetime      # TODO Remove if not used
+from typing import Dict            # Enable optional data types used in creation of GUI tabs
+import subprocess                  # Enable the running of CLI commands like "pip3 install -r requirements.txt"
+from dotenv import dotenv_values # Load environment variables for usernames, passwords, & API keys
 
-# 3rd party modules
-from nicegui import app, ui
-from nicegui.events import MouseEventArguments
-from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
-
-
-# Internal modules
-from PageKiteAPI import * 
-import DataProcessing as DP         # 
-import GlobalConstants as GC        # Global 
-from HouseDatabase import HouseDatabase
-import UserDataDatabase
+# Internally developed modules
+from PageKiteAPI import *                           # Create & delete custom subdomains for reverse proxy to tunnel
+import DataProcessing as DP                         # Manage the display of NiceGUI Meraid formatted nodes
+import GlobalConstants as GC                        # Global constants used in MainHouse.py, 
+from HouseDatabase import HouseDatabase             # Store non-Personally Identifiable Information like house light status
+from UserDataDatabase import UserDataDatabase       # Store IMPORTANT Personally Identifiable Information like physical addresses
 
 
-try:  # Importing externally developed libraries
+try:  # Importing externally developed 3rd party modules / libraries
 
-    # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
-    # https://github.com/supabase-community/supabase-py
-    #import supabase
-    from supabase import create_client, Client   #TODO REMOVE?, execute
+    # Browser GUI framework to build and display a user interface on the internet
+    # https://nicegui.io/
+    from nicegui import app, ui
+    from nicegui.events import MouseEventArguments
+
+    # Create directory and URL for local storage of images
+    if sys.platform.startswith('darwin'):
+        app.add_static_files('/static/images', GC.MAC_CODE_DIRECTORY +'/static/images')
+        app.add_static_files('/static/videos', GC.MAC_CODE_DIRECTORY + '/static/videos')
+    elif sys.platform.startswith('linux'):
+        app.add_static_files('/static/images', GC.LINUX_CODE_DIRECTORY + '/static/images')
+        app.add_static_files('/static/videos', GC.LINUX_CODE_DIRECTORY + '/static/videos')
+    elif sys.platform.startswith('win'):
+        print("ERROR: Running on Windows is NOT supported")
+    else:
+        print("ERROR: Running on an unknown operating system")
 
     # Enable control of ports on an Ethernet PoE Switch using telnet
     # https://www.paramiko.org/installing.html
     import paramiko
     
+    # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
+    # https://github.com/supabase-community/supabase-py
+    #import supabase
+    from supabase import create_client, Client
+
     # Reverse lookup a street address from GPS and vice verse & GeoLocate based on cell towers and wifi
     # https://github.com/googlemaps/google-maps-services-python
     # https://developers.google.com/maps/documentation/geolocation/overview
     import googlemaps
-    
-    # VPC
-    # https://www.linode.com/blog/networking/go-private-with-vlans-and-vpcs/
 
 except ImportError:
-    print("ERROR: The supabase python module didn't import correctly! ")
-    executeInstalls = input("Would you like me to *** pip3 install supabase *** for you (Y/N)? ")
+    print("ERROR: Not all the required libraries are installed!")
+    executeInstalls = input("Would you like me to *** pip3 install -r requirements.txt *** into Virtual Enviroment for you (Y/N)? ")
     if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
+        subprocess.call(['Python3', '-m', 'venv', '.VENV'])
+        subprocess.call(['source', '.VENV/bin/activate'])
         subprocess.call(['sudo', 'apt', 'install', 'python3-pip'])
-        subprocess.call(['pip3', 'install', 'supabase',])
+        subprocess.call(['pip3', 'install', '-r', 'requirements.txt'])
     else:
         print("You didn't type Y or YES :)")
-        print("Follow supabase manual install instructions at https://pypi.org/project/supabase/")
+        print("Manually install Python3.9 or higher and ")
 
 # Global Variables
 isDarkModeOn = False            # Application boots up in light mode
@@ -85,9 +96,8 @@ litehousePageKiteDomain = 'litehouse.pagekite.me'
 lustronPageKiteDomain = 'lustron.pagekite.me'
 tabNames = ['lights', 'cameras', 'doors', 'network']
 
-# Create directory and URL for local storage of images
-app.add_static_files('/static/images', 'static/images')
-app.add_static_files('/static/vidoes', 'static/videos')
+
+
 
 def toggle_dark_mode():
     """ Toggle entire window between light mode and dark mode
@@ -317,6 +327,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
             case _:
                 ui.notify(message='INVALID LIGHT STATE: Refresh your browser window')
         """
+        pass
     else:
         print('INVALID HOUSE TYPE')
         
@@ -331,27 +342,29 @@ def draw_signin_with_apple_button():
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode.disable()
     #serveApp = PageKiteStartUp(homeName)
-    
+
     db1 = HouseDatabase()
-    
-    supabaseEnvironmentVariables = dotenv_values()
-    url = supabaseEnvironmentVariables['SUPABASE_URL']
-    key = supabaseEnvironmentVariables['SUPABASE_KEY']
-    supabase: Client = create_client(url, key)
-    
-    unifiEnvironmentVariables = dotenv_values()
-    unifiSshUserName = unifiEnvironmentVariables['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
-    unifiSshpw = unifiEnvironmentVariables['PASSWORD_UNIFI_USW_ENTERPRISE_24_POE']
 
+    # Run .ENV enviroment variables loading only once in NON-Multiprocessor main() function 
+    if __name__ == "__main__":
+        config = dotenv_values()
+        url = config['SUPABASE_URL']
+        key = config['SUPABASE_KEY']
+        supabase: Client = create_client(url, key)
+        print("IN NON-MULTIPROCESSOR MAIN")
     
-    # Establish SSH connection
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
+        # Establish SSH connection with UniFi PoE Ethernet Switch
+        if GC.SWITH_HARDWARE_CONNECTED:
+            unifiSshUserName = config['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
+            unifiSshpw = config['PASSWORD_UNIFI_USW_ENTERPRISE_24_POE']
 
-    ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
-    
-    pageKite = PageKiteAPI('litehouse.pagekite.me')
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
+
+        ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
+        
+        pageKite = PageKiteAPI('litehouse.pagekite.me', config)
     
     with ui.header().classes(replace='row items-center') as header:
         ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')

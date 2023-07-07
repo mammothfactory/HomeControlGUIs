@@ -24,10 +24,11 @@ LUSTRON = 'LUSTRON'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-MAC_HOME_DIRECTORY   = '/Users/mars/MammothGithub/HomeControlGUIs'
-LINUX_HOME_DIRECTORY = '/home/casaos/HomeControlGUIs'
+MAC_CODE_DIRECTORY   = '/Users/mars/MammothGithub/LitehouseGUIs'
+LINUX_CODE_DIRECTORY = '/home/casaos/HomeControlGUIs'
 
 LOCAL_HOST_PORT_FOR_GUI = 8181
+SWITH_HARDWARE_CONNECTED = False
 
 MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
 

@@ -33,3 +33,6 @@ git ls-files | xargs wc -l
 Commands used to define Dockerfile for dependency installs:
 pip freeze  > requirements.txt
 yes | pip install -r requirememts.txt  
+
+
+Use a VPC instead of PageKite longterm: ttps://www.linode.com/blog/networking/go-private-with-vlans-and-vpcs/
