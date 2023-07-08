@@ -17,11 +17,12 @@ __doc__        = "Generate a tab based Progressive Web App GUI to control both t
 
 # Standard Python libraries
 import sys
-from time import sleep             # Enable pausing of the python program
-from datetime import datetime      # TODO Remove if not used
-from typing import Dict            # Enable optional data types used in creation of GUI tabs
-import subprocess                  # Enable the running of CLI commands like "pip3 install -r requirements.txt"
-from dotenv import dotenv_values # Load environment variables for usernames, passwords, & API keys
+from time import sleep              # Enable pausing of the python program
+from datetime import datetime       # TODO Remove if not used
+from typing import Dict             # Enable optional data types used in creation of GUI tabs
+import subprocess                   # Enable the running of CLI commands like "pip3 install -r requirements.txt"
+from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
+import requests                     # Grab data from the HouseAPI.py API built using FastAPI
 
 # Internally developed modules
 from PageKiteAPI import *                           # Create & delete custom subdomains for reverse proxy to tunnel
@@ -29,6 +30,7 @@ import DataProcessing as DP                         # Manage the display of Nice
 import GlobalConstants as GC                        # Global constants used in MainHouse.py, 
 from HouseDatabase import HouseDatabase             # Store non-Personally Identifiable Information like house light status
 from UserDataDatabase import UserDataDatabase       # Store IMPORTANT Personally Identifiable Information like physical addresses
+import HouseAPI as API
 
 
 try:  # Importing externally developed 3rd party modules / libraries
@@ -339,14 +341,26 @@ def draw_signin_with_apple_button():
     #https://developer.apple.com/documentation/sign_in_with_apple/displaying_sign_in_with_apple_buttons_on_the_webn
     pass
 
+
+
+
+
 if __name__ in {"__main__", "__mp_main__"}:
-    darkMode.disable()
-    #serveApp = PageKiteStartUp(homeName)
 
-    db1 = HouseDatabase()
-
-    # Run .ENV enviroment variables loading only once in NON-Multiprocessor main() function 
+    # Run non GUI code that doesn't nee multiprocessor just once
     if __name__ == "__main__":
+        
+        darkMode.disable()
+        #serveApp = PageKiteStartUp(homeName)
+
+        db1 = HouseDatabase()
+
+        apiRequest = requests.get(API.API_URL, timeout=2000)  # Timeout after 2000 milliseconds
+        if apiRequest.status_code != 200:
+            print(f'ERROR: Connection to API failed with code: {apiRequest.status_code}')
+        else:
+            print(f'API connection is OK: {apiRequest.json}')
+        
         config = dotenv_values()
         url = config['SUPABASE_URL']
         key = config['SUPABASE_KEY']
