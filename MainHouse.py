@@ -55,7 +55,7 @@ try:  # Importing externally developed 3rd party modules / libraries
     # Enable control of ports on an Ethernet PoE Switch using telnet
     # https://www.paramiko.org/installing.html
     import paramiko
-    
+
     # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
     # https://github.com/supabase-community/supabase-py
     #import supabase
@@ -78,9 +78,11 @@ except ImportError:
         print("You didn't type Y or YES :)")
         print("Manually install Python3.9 or higher and ")
 
+
 # Global Variables
 isDarkModeOn = False            # Application boots up in light mode
 darkMode = ui.dark_mode()       
+config = None                    # Hold .ENV 
 
 userLoggedIn = False
 sanitizedPhoneNumber = '5555555555'
@@ -343,30 +345,39 @@ def draw_signin_with_apple_button():
 
 
 
+def start_api() -> int:
+    """Use UVicorn a fast ASGI (Asynchronous Server Gateway Interface) to running auto refreshing API
+    """
+    
+    command = ['uvicorn', 'HouseAPI:app', '--reload', '--port', API.API_PORT]
+    backgroundApiProcess = subprocess.Popen(command)
+    processCode = backgroundApiProcess.pid
+    print(f'PID = {processCode}')
+    sleep(3)       # Delay to give API server kill to start up
+    
+    return int(processCode)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
+    darkMode.disable()
+    
+    db1 = HouseDatabase()
 
-    # Run non GUI code that doesn't nee multiprocessor just once
-    if __name__ == "__main__":
-        
-        darkMode.disable()
-        #serveApp = PageKiteStartUp(homeName)
+    apiBackgrounfProcessCode = start_api()
 
-        db1 = HouseDatabase()
-
-        apiRequest = requests.get(API.API_URL, timeout=2000)  # Timeout after 2000 milliseconds
-        if apiRequest.status_code != 200:
-            print(f'ERROR: Connection to API failed with code: {apiRequest.status_code}')
-        else:
-            print(f'API connection is OK: {apiRequest.json}')
-        
+    # Incoming APIs
+    try:
         config = dotenv_values()
+    except KeyError:
+        pass    
+    finally:
         url = config['SUPABASE_URL']
         key = config['SUPABASE_KEY']
         supabase: Client = create_client(url, key)
-        print("IN NON-MULTIPROCESSOR MAIN")
-    
+        
+        pageKite = PageKiteAPI('litehouse.pagekite.me', config)
+        #serveApp = PageKiteStartUp(homeName)
+
         # Establish SSH connection with UniFi PoE Ethernet Switch
         if GC.SWITH_HARDWARE_CONNECTED:
             unifiSshUserName = config['USERNAME_UNIFI_USW_ENTERPRISE_24_POE']
@@ -376,96 +387,102 @@ if __name__ in {"__main__", "__mp_main__"}:
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
 
+    
+        
+    try:
+        # NiceGUI code runing in "__mp_main__"
         ui.colors(primary=GC.MAMMOTH_BRIGHT_GRREN)
         
-        pageKite = PageKiteAPI('litehouse.pagekite.me', config)
-    
-    with ui.header().classes(replace='row items-center') as header:
-        ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')
-        with ui.element('q-tabs').on('update:model-value', switch_tab) as tabs:
-            for name in tabNames:
-                ui.element('q-tab').props(f'name={name} label={name}')
+        with ui.header().classes(replace='row items-center') as header:
+            ui.button(on_click=lambda: left_drawer.toggle()).props('flat color=white icon=home')
+            with ui.element('q-tabs').on('update:model-value', switch_tab) as tabs:
+                for name in tabNames:
+                    ui.element('q-tab').props(f'name={name} label={name}')
 
-    with ui.footer(value=False) as footer:
-        ui.label('Mammoth Factory Corp')
+        with ui.footer(value=False) as footer:
+            ui.label('Mammoth Factory Corp')
 
 
-    with ui.left_drawer().classes('bg-white-100') as left_drawer:
-        with ui.grid(columns=1):
-            darkModeSwitch = ui.switch('Enable Dark Mode', on_change=toggle_dark_mode)
-            ui.label('')
-            
-            enterPhoneNumberGrid = ui.grid(columns=1)
-            with enterPhoneNumberGrid:
-                
-                
-                invalidPhoneNumberLabel = ui.label()
-                invalidPhoneNumberLabel.visible = False
-                userInputTextBox = ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
-                                on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
-                                validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
-                
-                userInputButton = ui.button('NEXT', on_click=lambda e: send_otp_password(sanitizedPhoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid))
-                
+        with ui.left_drawer().classes('bg-white-100') as left_drawer:
+            with ui.grid(columns=1):
+                darkModeSwitch = ui.switch('Enable Dark Mode', on_change=toggle_dark_mode)
                 ui.label('')
-                ui.label('')
+                
+                enterPhoneNumberGrid = ui.grid(columns=1)
+                with enterPhoneNumberGrid:
+                    
+                    
+                    invalidPhoneNumberLabel = ui.label()
+                    invalidPhoneNumberLabel.visible = False
+                    userInputTextBox = ui.input(label='Enter your 10 digit phone number', placeholder='e.g. 7195551234', \
+                                    on_change=lambda e: invalidPhoneNumberLabel.set_text(sanitize_phone_number(e.value)), \
+                                    validation={'Phone number is too long': lambda value: len(sanitizedPhoneNumber) <= GC.VALID_USA_CANADA_MEXICO_PHONE_NUMBER_LENGTH})  # Length incluses + symbol at start of phone number
+                    
+                    userInputButton = ui.button('NEXT', on_click=lambda e: send_otp_password(sanitizedPhoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid))
+                    
+                    ui.label('')
+                    ui.label('')
+                
+            
+                signInGrid = ui.grid(columns=1)
+                signInGrid.visible = False
+                with signInGrid:
+                    invalidOtpLabel = ui.label()
+                    invalidOtpLabel.visible = False
+                    optInputTextBox = ui.input(label='Enter 6 digit code', placeholder='e.g. 123456', \
+                            on_change=lambda e: invalidOtpLabel.set_text(sanitize_otp_code(e.value)), \
+                            validation={'Code too long, should be 6 digits': lambda value: len(sanitizedOtpCode) <= 6})
+                    
+                    signInButton = ui.button('SIGN IN', on_click=lambda e: sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid))
+
+            userDataForm = ui.grid(columns=2)
+            userDataForm.visible = False
+            with userDataForm:
+                ui.label('Home Name:').tailwind.font_weight('extrabold')
+                ui.label(homeName).style('gap: 10px')
+            
+                ui.label('Home Address:').tailwind.font_weight('extrabold')
+                ui.label(homeAddress)
+
+                ui.label('Home GPS:').tailwind.font_weight('extrabold')
+                ui.label("28.54250516114, -81.372488625")
+                
+                signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm))
+
+
+        with ui.page_sticky(position='bottom-right', x_offset=20, y_offset=20):
+            infoButton = ui.button(on_click=footer.toggle).props('fab icon=info')
+
+        
+        # the page content consists of multiple tab panels
+        with ui.element('q-tab-panels').props('model-value=A animated').classes('w-full') as panels:
+            #for name in tabNames:
             
         
-            signInGrid = ui.grid(columns=1)
-            signInGrid.visible = False
-            with signInGrid:
-                invalidOtpLabel = ui.label()
-                invalidOtpLabel.visible = False
-                optInputTextBox = ui.input(label='Enter 6 digit code', placeholder='e.g. 123456', \
-                         on_change=lambda e: invalidOtpLabel.set_text(sanitize_otp_code(e.value)), \
-                         validation={'Code too long, should be 6 digits': lambda value: len(sanitizedOtpCode) <= 6})
-                
-                signInButton = ui.button('SIGN IN', on_click=lambda e: sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid))
-
-        userDataForm = ui.grid(columns=2)
-        userDataForm.visible = False
-        with userDataForm:
-            ui.label('Home Name:').tailwind.font_weight('extrabold')
-            ui.label(homeName).style('gap: 10px')
+            with ui.element('q-tab-panel').props(f'name={tabNames[0]}').classes('w-full'):
+                with ui.grid(columns=1):
+                    ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
+                    ii = ui.interactive_image(houseType, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
+                    
+            with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
+                with ui.grid(columns=1):
+                    ui.image('https://picsum.photos/id/377/640/360')
+                    
+            with ui.element('q-tab-panel').props(f'name={tabNames[2]}').classes('w-full'):
+                with ui.grid(columns=2):
+                    ui.image('static/images/OpenDoor.gif')
+                    
+                    ui.image('static/images/OpenDoor.gif')
+                            
+            with ui.element('q-tab-panel').props(f'name={tabNames[3]}').classes('w-full'):
+                with ui.grid(columns=1):
+                    ui.label(f'{tabNames[3].capitalize()} Layout').tailwind('mx-auto text-2xl')
+                    # WORKS!!! :) newNetworkDiagram = DP.output_network_diagram(DP.delete_network_diagram_node(DP.parse_network_diagram(DP.STATIC_DEFAULT_NETWORK), 'H'))
+                    newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
+                    ui.mermaid(newNetworkDiagram)
+                    
+        ui.run(native=GC.RUN_ON_NATIVE_OS, port=GC.LOCAL_HOST_PORT_FOR_GUI)
         
-            ui.label('Home Address:').tailwind.font_weight('extrabold')
-            ui.label(homeAddress)
-
-            ui.label('Home GPS:').tailwind.font_weight('extrabold')
-            ui.label("28.54250516114, -81.372488625")
-            
-            signOutButton = ui.button('SIGN OUT', on_click=lambda e: reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, userDataForm))
-
-
-    with ui.page_sticky(position='bottom-right', x_offset=20, y_offset=20):
-        infoButton = ui.button(on_click=footer.toggle).props('fab icon=info')
-
-    
-    # the page content consists of multiple tab panels
-    with ui.element('q-tab-panels').props('model-value=A animated').classes('w-full') as panels:
-        #for name in tabNames:
-        
-       
-        with ui.element('q-tab-panel').props(f'name={tabNames[0]}').classes('w-full'):
-            with ui.grid(columns=1):
-                ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
-                ii = ui.interactive_image(houseType, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
-                
-        with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
-            with ui.grid(columns=1):
-                ui.image('https://picsum.photos/id/377/640/360')
-                
-        with ui.element('q-tab-panel').props(f'name={tabNames[2]}').classes('w-full'):
-            with ui.grid(columns=2):
-                ui.image('static/images/OpenDoor.gif')
-                
-                ui.image('static/images/OpenDoor.gif')
-                        
-        with ui.element('q-tab-panel').props(f'name={tabNames[3]}').classes('w-full'):
-            with ui.grid(columns=1):
-                ui.label(f'{tabNames[3].capitalize()} Layout').tailwind('mx-auto text-2xl')
-                # WORKS!!! :) newNetworkDiagram = DP.output_network_diagram(DP.delete_network_diagram_node(DP.parse_network_diagram(DP.STATIC_DEFAULT_NETWORK), 'H'))
-                newNetworkDiagram = DP.STATIC_DEFAULT_NETWORK
-                ui.mermaid(newNetworkDiagram)
-                
-    ui.run(native=GC.RUN_ON_NATIVE_OS, port=GC.LOCAL_HOST_PORT_FOR_GUI)
+    except KeyboardInterrupt:
+        command = ['kill', '-9', str(apiBackgrounfProcessCode)]
+        subprocess.call(command)
