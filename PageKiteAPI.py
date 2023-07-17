@@ -11,14 +11,12 @@ __version__    = "0.1.0"
 
 # Disable PyLint linting messages
 # https://pypi.org/project/pylint/
-# pylint: disable=line-too-long
 # pylint: disable=invalid-name
 
+# Standard Python libraries
 import subprocess
 from time import sleep
-
 import xmlrpc.client
-from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
 
 import GlobalConstants as GC
 

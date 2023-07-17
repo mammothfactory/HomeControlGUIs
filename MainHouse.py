@@ -18,10 +18,8 @@ __doc__        = "Generate a tab based Progressive Web App GUI to control both t
 # Standard Python libraries
 import sys
 from time import sleep              # Enable pausing of the python program
-from datetime import datetime       # TODO Remove if not used
 from typing import Dict             # Enable optional data types used in creation of GUI tabs
 import subprocess                   # Enable the running of CLI commands like "pip3 install -r requirements.txt"
-from dotenv import dotenv_values    # Load environment variables for usernames, passwords, & API keys
 import requests                     # Grab data from the HouseAPI.py API built using FastAPI
 
 # Internally developed modules
@@ -35,7 +33,7 @@ import HouseAPI as API
 
 try:  # Importing externally developed 3rd party modules / libraries
 
-    # Browser GUI framework to build and display a user interface on the internet
+    # Browser base GUI framework to build and display a user interface mobile, PC, and Mac
     # https://nicegui.io/
     from nicegui import app, ui
     from nicegui.events import MouseEventArguments
@@ -56,10 +54,13 @@ try:  # Importing externally developed 3rd party modules / libraries
     # https://www.paramiko.org/installing.html
     import paramiko
 
+    # Load environment variables for usernames, passwords, & API keys
+    # https://pypi.org/project/python-dotenv/
+    from dotenv import dotenv_values                                #, load_dotenv TODO if __mp_main__ continues to bea problem 
+      
     # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
     # https://github.com/supabase-community/supabase-py
-    #import supabase
-    from supabase import create_client, Client
+    from supabase.client import create_client, Client
 
     # Reverse lookup a street address from GPS and vice verse & GeoLocate based on cell towers and wifi
     # https://github.com/googlemaps/google-maps-services-python
@@ -78,27 +79,26 @@ except ImportError:
         print("You didn't type Y or YES :)")
         print("Manually install Python3.9 or higher and ")
 
+finally:
+    # Global Variables
+    isDarkModeOn = False            # Application boots up in light mode
+    darkMode = ui.dark_mode()
 
-# Global Variables
-isDarkModeOn = False            # Application boots up in light mode
-darkMode = ui.dark_mode()       
-config = None                    # Hold .ENV 
+    userLoggedIn = False
+    sanitizedPhoneNumber = '5555555555'
+    sanitizedOtpCode = '123456'
+    username = sanitizedPhoneNumber
 
-userLoggedIn = False
-sanitizedPhoneNumber = '5555555555'
-sanitizedOtpCode = '123456'
-username = sanitizedPhoneNumber
-
-isMasterBedroomLightsOn = False
-ismasterBathroomLightsOn = False
-houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
-liteHouseLightState = 0b0000_0000
-lustronLightState = 0b0000_0000
-homeName = 'MyHouse'
-homeAddress = '407 E Central Blvd, Orlando, FL 32801'
-litehousePageKiteDomain = 'litehouse.pagekite.me'
-lustronPageKiteDomain = 'lustron.pagekite.me'
-tabNames = ['lights', 'cameras', 'doors', 'network']
+    isMasterBedroomLightsOn = False
+    ismasterBathroomLightsOn = False
+    houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
+    liteHouseLightState = 0b0000_0000
+    lustronLightState = 0b0000_0000
+    homeName = 'MyHouse'
+    homeAddress = '407 E Central Blvd, Orlando, FL 32801'
+    litehousePageKiteDomain = 'litehouse.pagekite.me'
+    lustronPageKiteDomain = 'lustron.pagekite.me'
+    tabNames = ['lights', 'cameras', 'doors', 'network']
 
 
 
