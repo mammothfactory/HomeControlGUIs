@@ -1,0 +1,96 @@
+Supabase called to verify OTP: USER = user=User(id='fcbdcae2-0453-426e-bbeb-58afa1b446b8', app_metadata={'provider': 'phone', 'providers': ['phone']}, user_metadata={}, aud='authenticated', confirmation_sent_at=datetime.datetime(2023, 7, 18, 16, 13, 23, 574545, tzinfo=datetime.timezone.utc), 
+recovery_sent_at=None, email_change_sent_at=None, new_email=None, invited_at=None, action_link=None, email='', phone='17196390839', created_at=datetime.datetime(2023, 6, 29, 1, 17, 33, 43345, tzinfo=datetime.timezone.utc), confirmed_at=datetime.datetime(2023, 7, 18, 14, 28, 45, 79414, tzinfo=datetime.timezone.utc), 
+email_confirmed_at=None, phone_confirmed_at=datetime.datetime(2023, 7, 18, 16, 13, 42, 540533, tzinfo=datetime.timezone.utc), last_sign_in_at=datetime.datetime(2023, 7, 18, 16, 13, 42, 541113, tzinfo=datetime.timezone.utc), role='authenticated', updated_at=datetime.datetime(2023, 7, 18, 16, 13, 42, 542594, tzinfo=datetime.timezone.utc), 
+identities=[UserIdentity(id='fcbdcae2-0453-426e-bbeb-58afa1b446b8', user_id='fcbdcae2-0453-426e-bbeb-58afa1b446b8', identity_data={'sub': 'fcbdcae2-0453-426e-bbeb-58afa1b446b8'}, provider='phone', created_at=datetime.datetime(2023, 6, 29, 1, 17, 33, 46220, tzinfo=datetime.timezone.utc), 
+last_sign_in_at=datetime.datetime(2023, 6, 29, 1, 17, 33, 46184, tzinfo=datetime.timezone.utc), updated_at=datetime.datetime(2023, 6, 29, 1, 17, 33, 46220, tzinfo=datetime.timezone.utc))], factors=None) session=Session(provider_token=None, provider_refresh_token=None, 
+access_token='eyJhbGciOiJIUzI1NiIsImtpZCI6ImVRWWhwejIxdEhIMlgvTysiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNjg5NzAwNDIyLCJpYXQiOjE2ODk2OTY4MjIsImlzcyI6Imh0dHBzOi8vaHR0cHM6Ly91dXNxZWtranlnaGNjanV3dXlkYS5zdXBhYmFzZS5jby9hdXRoL3YxIiwic3ViIjoiZmNiZGNhZTItMDQ1My00MjZlLWJiZWItNThhZmExYjQ0NmI4IiwiZW1haWwiOiIiLCJwaG9uZSI6IjE3MTk2MzkwODM5IiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoicGhvbmUiLCJwcm92aWRlcnMiOlsicGhvbmUiXX0sInVzZXJfbWV0YWRhdGEiOnt9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6Im90cCIsInRpbWVzdGFtcCI6MTY4OTY5NjgyMn1dLCJzZXNzaW9uX2lkIjoiNmY4NzcxYzYtZmFkNy00MmEzLWI2NzMtODA5MmQ2MjhlYmVkIn0.pIZENa3CVv0Gv3PolsoDHiZ0k2KeJZRwEOL6iB-zads', refresh_token='qj_bc_mAGWSAs6aoGWH3QA', expires_in=3600, expires_at=1689700423, token_type='bearer', user=User(id='fcbdcae2-0453-426e-bbeb-58afa1b446b8', app_metadata={'provider': 'phone', 'providers': ['phone']}, user_metadata={}, aud='authenticated', confirmation_sent_at=datetime.datetime(2023, 7, 18, 16, 13, 23, 574545, tzinfo=datetime.timezone.utc), recovery_sent_at=None, email_change_sent_at=None, new_email=None, invited_at=None, action_link=None, email='', phone='17196390839', created_at=datetime.datetime(2023, 6, 29, 1, 17, 33, 43345, tzinfo=datetime.timezone.utc), confirmed_at=datetime.datetime(2023, 7, 18, 14, 28, 45, 79414, tzinfo=datetime.timezone.utc), email_confirmed_at=None, phone_confirmed_at
+
+
+
+The error message you are seeing indicates that the function `sign_in_with_otp` is expecting more information than you are currently providing.
+
+In this case, the fields `id`, `app_metadata`, `user_metadata`, `aud`, and `created_at` are all required, but they are missing from the parameters you are providing. Here's how you might include those:
+
+```python
+user = supabase.auth.sign_in_with_otp({
+    "phone": countryCodePhoneNumber,
+    "id": user_id,   # replace with actual user id
+    "app_metadata": app_metadata,   # replace with actual app metadata
+    "user_metadata": user_metadata,   # replace with actual user metadata
+    "aud": aud,   # replace with actual aud
+    "created_at": created_at,   # replace with actual creation timestamp
+})
+```
+
+The exact values you need to provide for these fields will depend on the specific requirements of your application and how it's set up. 
+
+However, it's unusual for the `sign_in_with_otp` function to require these fields. These fields are usually managed by the backend and not directly inputted by the user. This error might be due to a version mismatch between your `supabase` and `gotrue` packages. Make sure you have the correct versions installed.
+
+If these fields are truly required by your sign in method, make sure to replace `user_id`, `app_metadata`, `user_metadata`, `aud`, and `created_at` with the appropriate values for your application.
+
+Also, remember to keep sensitive data like `id` and `aud` (which is typically a JWT token) secure. Never expose these sensitive credentials in a public or insecure environment.
+
+When trying "pip3 install supabase" got the following errors
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+nicegui 1.3.4 requires httpx<0.25.0,>=0.24.1, but you have httpx 0.23.3 which is incompatible.
+
+
+INFO: pip is looking at multiple versions of postgrest to determine which version is compatible with other requirements. This could take a while.
+Collecting nicegui==1.3.4 (from -r .\requirementsWINDOWS.txt (line 43))
+  Obtaining dependency information for nicegui==1.3.4 from https://files.pythonhosted.org/packages/7c/d3/da9a4338dfcff32d819a5cbb4c5f739bb4e3fe05de7892f7ef19bb038a12/nicegui-1.3.4-py3-none-any.whl.metadata
+  Using cached nicegui-1.3.4-py3-none-any.whl.metadata (8.1 kB)
+Collecting gotrue==1.0.2 (from -r .\requirementsWINDOWS.txt (line 25))
+  Obtaining dependency information for gotrue==1.0.2 from https://files.pythonhosted.org/packages/98/d9/b0f8eb50a16dce8794536af174f4a549dfd5c1e9141bf2538d37752bfac9/gotrue-1.0.2-py3-none-any.whl.metadata
+  Using cached gotrue-1.0.2-py3-none-any.whl.metadata (5.9 kB)
+ERROR: Cannot install -r .\requirementsWINDOWS.txt (line 25), -r .\requirementsWINDOWS.txt (line 43), httpx>=0.24.1 and postgrest==0.10.6 because these package versions have conflicting dependencies.
+
+The conflict is caused by:
+    The user requested httpx>=0.24.1
+    gotrue 1.0.2 depends on httpx<0.25 and >=0.23
+    nicegui 1.3.4 depends on httpx<0.25.0 and >=0.24.1
+    postgrest 0.10.6 depends on httpx<0.24.0 and >=0.23.0
+
+To fix this you could try to:
+1. loosen the range of package versions you've specified
+2. remove package versions to allow pip attempt to solve the dependency conflict
+
+ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/latest/topics/dependency-resolution/#dealing-with-dependency-conflicts
+
+INFO: pip is looking at multiple versions of nicegui to determine which version is compatible with other requirements. This could take a while.
+Collecting nicegui<=1.3.4 (from -r .\requirements.txt (line 42))
+  Obtaining dependency information for nicegui<=1.3.4 from https://files.pythonhosted.org/packages/5c/1f/541bd42b4ebb0d90c417581d6f3f69ba34daa3dccae908be2e4b774106b6/nicegui-1.3.3-py3-none-any.whl.metadata
+  Downloading nicegui-1.3.3-py3-none-any.whl.metadata (8.1 kB)
+  Obtaining dependency information for nicegui<=1.3.4 from https://files.pythonhosted.org/packages/df/b8/a53a9e915e9aa85f9195c589e382fd519ece41b033a29343a121e3212dff/nicegui-1.3.2-py3-none-any.whl.metadata
+  Downloading nicegui-1.3.2-py3-none-any.whl.metadata (8.2 kB)
+  Obtaining dependency information for nicegui<=1.3.4 from https://files.pythonhosted.org/packages/5a/ce/45f7d689eac82aab9d42672d8031ce9e7136cd141e0fa897a157120348ce/nicegui-1.3.1-py3-none-any.whl.metadata
+  Downloading nicegui-1.3.1-py3-none-any.whl.metadata (8.2 kB)
+  Obtaining dependency information for nicegui<=1.3.4 from https://files.pythonhosted.org/packages/99/8f/82034e6f130d51aca155404bf9a128669f62f650db1180a32ff8ebedaf38/nicegui-1.3.0-py3-none-any.whl.metadata
+  Downloading nicegui-1.3.0-py3-none-any.whl.metadata (8.1 kB)
+Collecting netifaces<0.12.0,>=0.11.0 (from nicegui<=1.3.4->-r .\requirements.txt (line 42))
+  Downloading netifaces-0.11.0.tar.gz (30 kB)
+  Preparing metadata (setup.py) ... done
+Downloading nicegui-1.3.0-py3-none-any.whl (13.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.0/13.0 MB 1.6 MB/s eta 0:00:00
+Building wheels for collected packages: netifaces
+  Building wheel for netifaces (setup.py) ... error
+  error: subprocess-exited-with-error
+
+  × python setup.py bdist_wheel did not run successfully.
+  │ exit code: 1
+  ╰─> [5 lines of output]
+      running bdist_wheel
+      running build
+      running build_ext
+      building 'netifaces' extension
+      error: Microsoft Visual C++ 14.0 is required. Get it with "Build Tools for Visual Studio": https://visualstudio.microsoft.com/downloads/
+      [end of output]
+
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for netifaces
+  Running setup.py clean for netifaces
+Failed to build netifaces
+ERROR: Could not build wheels for netifaces, which is required to install pyproject.toml-based projects
+
+https://stackoverflow.com/questions/64261546/how-to-solve-error-microsoft-visual-c-14-0-or-greater-is-required-when-inst
+
+
