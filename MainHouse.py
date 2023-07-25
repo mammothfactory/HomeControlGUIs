@@ -65,7 +65,7 @@ try:  # Importing externally developed 3rd party modules / libraries
     # Reverse lookup a street address from GPS and vice verse & GeoLocate based on cell towers and wifi
     # https://github.com/googlemaps/google-maps-services-python
     # https://developers.google.com/maps/documentation/geolocation/overview
-    import googlemaps
+    #import googlemaps
 
 except ImportError:
     print("ERROR: Not all the required libraries are installed!")
@@ -363,7 +363,7 @@ if __name__ in {"__main__", "__mp_main__"}:
     
     db1 = HouseDatabase()
 
-    apiBackgrounfProcessCode = start_api()
+    #apiBackgrounfProcessCode = start_api()
 
     # Incoming APIs
     try:
@@ -385,7 +385,8 @@ if __name__ in {"__main__", "__mp_main__"}:
 
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
+            # Auto find IP address of switch using MAC Addresses d8:b3:70:1e:27:18???
+            ssh.connect('192.168.100.160', username=unifiSshUserName, password=unifiSshpw)
 
     
         

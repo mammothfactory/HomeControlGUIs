@@ -28,7 +28,7 @@ MAC_CODE_DIRECTORY   = '/Users/mars/MammothGithub/LitehouseGUIs'
 LINUX_CODE_DIRECTORY = '/home/casaos/HomeControlGUIs'
 
 LOCAL_HOST_PORT_FOR_GUI = 8181
-SWITH_HARDWARE_CONNECTED = False
+SWITH_HARDWARE_CONNECTED = True
 
 MAMMOTH_BRIGHT_GRREN = '#03C04A'       #'background-color: #03C04A'
 
