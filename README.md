@@ -42,3 +42,15 @@ Command to count lines of code in a directory / git repo:
 git ls-files | xargs wc -l
 
 Use a VPC instead of PageKite longterm: ttps://www.linode.com/blog/networking/go-private-with-vlans-and-vpcs/
+
+Wireless Ethernet Bridge
+https://dl.ubnt.com/guides/airOS/airOS_UG_V80.pdf
+https://community.ui.com/questions/Wireless-to-Ethernet-Bridge/ecec1bb3-53b9-4169-b89e-5d874cbf2f04
+https://community.ui.com/questions/adding-an-AC-Pro-to-an-existing-network/04afdd13-b2e4-439e-b8a8-1cd5bb828f2f
+https://a.co/d/aUD30hu
+
+
+Rocket® ac
+NanoBeam® ac - https://store.ui.com/us/en/products/nanobeam-5ac
+PowerBeam™ ac - https://www.ispsupplies.com/Ubiquiti-PBE-5AC-500-US
+LiteBeam® ac - https://store.ui.com/us/en/products/litebeam-5ac
