@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 __authors__    = ["Blaze Sanders"]
-__contact__    = "blaze.d.a.sanders@gmail.com"
+ __contact__    = "blazes@mfc.us"
 __copyright__  = "Copyright 2023"
 __license__    = "GPLv3"
 __status__     = "Development
@@ -18,25 +18,24 @@ __doc__        = "Generate a tab based Progressive Web App GUI to control both t
 # Standard Python libraries
 import sys
 from time import sleep              # Enable pausing of the python program
-from typing import Dict             # Enable optional data types used in creation of GUI tabs
+from typing import Dict             # Enable optional data types used in creation of GUI tabs and .ENV file access
 import subprocess                   # Enable the running of CLI commands like "pip3 install -r requirements.txt"
 import requests                     # Grab data from the HouseAPI.py API built using FastAPI
 
 # Internally developed modules
 from PageKiteAPI import *                           # Create & delete custom subdomains for reverse proxy to tunnel
 import DataProcessing as DP                         # Manage the display of NiceGUI Meraid formatted nodes
-import GlobalConstants as GC                        # Global constants used in MainHouse.py, 
+import GlobalConstants as GC                        # Global constants used across MainHouse.py, HouseDatabase.py, and PageKiteAPI.py
 from HouseDatabase import HouseDatabase             # Store non-Personally Identifiable Information like house light status
 from UserDataDatabase import UserDataDatabase       # Store IMPORTANT Personally Identifiable Information like physical addresses
 import HouseAPI as API
 
+# Browser base GUI framework to build and display a user interface mobile, PC, and Mac
+# https://nicegui.io/
+from nicegui import app, ui
+from nicegui.events import MouseEventArguments
 
 try:  # Importing externally developed 3rd party modules / libraries
-
-    # Browser base GUI framework to build and display a user interface mobile, PC, and Mac
-    # https://nicegui.io/
-    from nicegui import app, ui
-    from nicegui.events import MouseEventArguments
 
     # Create directory and URL for local storage of images
     if sys.platform.startswith('darwin'):
@@ -46,9 +45,10 @@ try:  # Importing externally developed 3rd party modules / libraries
         app.add_static_files('/static/images', GC.LINUX_CODE_DIRECTORY + '/static/images')
         app.add_static_files('/static/videos', GC.LINUX_CODE_DIRECTORY + '/static/videos')
     elif sys.platform.startswith('win'):
-        print("ERROR: Running on Windows is NOT supported")
+        print("WARNING: Running MainHouse.py server code on Windows OS is NOT fully supported")
     else:
         print("ERROR: Running on an unknown operating system")
+        quit()
 
     # Enable control of ports on an Ethernet PoE Switch using telnet
     # https://www.paramiko.org/installing.html
@@ -56,8 +56,8 @@ try:  # Importing externally developed 3rd party modules / libraries
 
     # Load environment variables for usernames, passwords, & API keys
     # https://pypi.org/project/python-dotenv/
-    from dotenv import dotenv_values                                #, load_dotenv TODO if __mp_main__ continues to bea problem 
-      
+    from dotenv import dotenv_values
+
     # Open source plaform for NoSQL databases, authentication, file storage, and auto-generated APIs
     # https://github.com/supabase-community/supabase-py
     from supabase.client import create_client, Client
@@ -65,16 +65,20 @@ try:  # Importing externally developed 3rd party modules / libraries
     # Reverse lookup a street address from GPS and vice verse & GeoLocate based on cell towers and wifi
     # https://github.com/googlemaps/google-maps-services-python
     # https://developers.google.com/maps/documentation/geolocation/overview
-    #import googlemaps
+    # import googlemaps
 
 except ImportError:
     print("ERROR: Not all the required libraries are installed!")
     executeInstalls = input("Would you like me to *** pip3 install -r requirements.txt *** into Virtual Enviroment for you (Y/N)? ")
-    if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
-        subprocess.call(['Python3', '-m', 'venv', '.VENV'])
-        subprocess.call(['source', '.VENV/bin/activate'])
-        subprocess.call(['sudo', 'apt', 'install', 'python3-pip'])
-        subprocess.call(['pip3', 'install', '-r', 'requirements.txt'])
+
+    # If code is running on Linux or MacOS create Virtual Enviroment and required pip installs
+    if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+        if(executeInstalls.upper() == "Y" or executeInstalls.upper() == "YES"):
+            subprocess.call(['sudo', 'apt', 'install', 'python3-venv'])
+            subprocess.call(['python3', '-m', 'venv', '.VENV'])
+            subprocess.call(['source', '.VENV/bin/activate'])
+            subprocess.call(['sudo', 'apt', 'install', 'python3-pip'])
+            subprocess.call(['pip3', 'install', '-r', 'requirements.txt'])
     else:
         print("You didn't type Y or YES :)")
         print("Manually install Python3.9 or higher and ")
@@ -90,16 +94,25 @@ finally:
     username = sanitizedPhoneNumber
 
     isMasterBedroomLightsOn = False
-    ismasterBathroomLightsOn = False
-    houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
+    isMasterBathroomLightsOn = False
+    isAreaLightOn = [False, False, False, isMasterBedroomLightsOn, isMasterBathroomLightsOn]    #TODO Add more areas (e.g. rooms, closets, porches) for other Litehouse and Lustron rooms
     liteHouseLightState = 0b0000_0000
-    lustronLightState = 0b0000_0000
+    
+    isMasterBathroomFanOn = False
+    isMasterBathroomFanOn = False
+    isAreaFanOn = [False, False, False, isMasterBathroomFanOn, isMasterBathroomFanOn]           #TODO Add more areas (e.g. rooms, closets, porches) for other Litehouse and Lustron rooms
+    liteHouseFanState = 0b0000_0000
+
+
+    # TODO Remove Lustron from MainHouse.py and rename to MainLiteHouse.py???
+    houseType = GC.LITE_HOUSE_SOURCE                            # 2nd option is GC.LUSTRON_SOURCE
+    lustronLightState = 0b00000_0000_0000_0000
+    
     homeName = 'MyHouse'
     homeAddress = '407 E Central Blvd, Orlando, FL 32801'
     litehousePageKiteDomain = 'litehouse.pagekite.me'
     lustronPageKiteDomain = 'lustron.pagekite.me'
     tabNames = ['lights', 'cameras', 'doors', 'network']
-
 
 
 
@@ -115,6 +128,7 @@ def toggle_dark_mode():
 
     isDarkModeOn = not isDarkModeOn
 
+
 def login_user():
     global userLoggedIn 
 
@@ -123,9 +137,16 @@ def login_user():
     ui.update(userDataForm)
 
 
-def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid):
+def send_otp_password(phoneNumber: str, invalidPhoneNumberLabel: ui.label, enterPhoneNumberGrid: ui.grid):
+    """ Send a random 6 digit code via SMS and edit GUI elements in real time if input conatins formatting errors
+
+    Args:
+        phoneNumber (String): Valid 10 digit phone number from US and Canada (https://www.iban.com/dialing-codes) 
+        invalidPhoneNumberLabel (ui.label): GUI label element 
+        enterPhoneNumberGrid (ui.grid): GUI grid (a collection of label & input)
+    """
     global username
-    
+
     isValidPhoneNumber = True
     countryCodePhoneNumber = '+1' + phoneNumber
 
@@ -137,8 +158,10 @@ def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid
         invalidPhoneNumberLabel.tailwind.font_weight('extrabold').text_color('red-600')
         invalidPhoneNumberLabel.visible = True
     else:
-        try:       
-            user = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
+        try:
+            response = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
+            print(f'Supabase called to send SMS: {response}')
+            
         finally:
             enterPhoneNumberGrid.visible = False
             signInGrid.visible = True
@@ -148,15 +171,17 @@ def send_otp_password(phoneNumber, invalidPhoneNumberLabel, enterPhoneNumberGrid
 def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
     global username
     print(f'ATTEMPTING SIGN IN WITH username: {username} with {sanitizedOtpCode}')
-    
-    res = supabase.auth.verify_otp({"phone": username, "token": str(sanitizedOtpCode), "type": 'sms'})
-    db1.insert_users_table(username, sanitizedOtpCode)
-    
+
+    validUser = supabase.auth.verify_otp({"phone": username, "token": str(sanitizedOtpCode), "type": 'sms'})
+    print(f'Supabase called to verify OTP: USER = {validUser}')
+    if validUser.user.aud == 'authenticated':
+        db1.insert_users_table(username, sanitizedOtpCode)
+
     if db1.verify_password(username, sanitizedOtpCode):
         userFound = True
     else:
         userFound = False
-        
+
     if userFound:
         userDataForm.visible = True
         signInGrid.visible = False
@@ -164,7 +189,7 @@ def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
         invalidOtpLabel.set_text(sanitizedOtpCode + ' is not a valid OTP code')
         invalidOtpLabel.tailwind.font_weight('extrabold').text_color('red-600')
         invalidOtpLabel.visible = True
-        
+
     # TODO Force user to give home a unquie name
     # Add this new subdomain to database and use a session JWT (Java Web Token)
 
@@ -185,10 +210,12 @@ def reset_login_gui(invalidPhoneNumberLabel, enterPhoneNumberGrid, signInGrid, u
     signInGrid.visible = False
     userDataForm.visible = False
 
+
 def switch_tab(msg: Dict) -> None:
     name = msg['args']
     tabs.props(f'model-value={name}')
     panels.props(f'model-value={name}')
+
 
 def sanitize_phone_number(text):
     global sanitizedPhoneNumber
@@ -212,9 +239,16 @@ def sanitize_otp_code(text) -> str:
     
     return sanitizedOtpCode
 
-def determine_room_mouse_handler(e: MouseEventArguments):
-    global isMasterBedroomLightsOn 
-    global ismasterBathroomLightsOn
+def determine_room_fan_mouse_handler(e: MouseEventArguments):
+    global isMasterBedroomFanOn
+    global ismasterBathroomFanOn
+    
+    print(isMasterBedroomFanOn)
+
+
+def determine_room_light_mouse_handler(e: MouseEventArguments):
+    global isMasterBedroomLightsOn
+    global isMasterBathroomLightsOn
 
     areaFound = False
 
@@ -226,18 +260,29 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             isMasterBedroomLightsOn = not isMasterBedroomLightsOn
             if isMasterBedroomLightsOn:
                 ui.notify(message='Please wait turning Master Bedroom lights ON')
+                
+                # Telnet command
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                print(stdout.read().decode())
             else:
                 ui.notify(message='Master Bedroom lights OFF')
+                
+                # Telnet command
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                print(stdout.read().decode())
 
             draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
+            
     
     for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):
         if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
 
             areaFound = True
-            ismasterBathroomLightsOn = not ismasterBathroomLightsOn
-            if ismasterBathroomLightsOn:
+            isMasterBathroomLightsOn = not isMasterBathroomLightsOn
+            if isMasterBathroomLightsOn:
                 ui.notify(message='Please wait turning Bathroom lights ON')
                 
                 # Telnet command
@@ -247,15 +292,16 @@ def determine_room_mouse_handler(e: MouseEventArguments):
                 
             else:
                 ui.notify(message='Bathroom lights OFF')
+                
                 # Telnet command
                 telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-
-                # Execute the command
                 stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                output = stdout.read().decode()
-                print(output)
+                print(stdout.read().decode())
 
-            draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
+            draw_light_highlight(ii, isMasterBathroomLightsOn, GC.MASTER_BATHROOM)
+    
+    
+    db1.update_light_state_table(liteHouseLightState)
     
     if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
@@ -266,7 +312,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
     global liteHouseLightState
     global lustronLightState
 
-    print("Light State BEFORE change:", bin(liteHouseLightState))
+    db1.insert_debug_logging_table(f'Light State BEFORE click: " {bin(liteHouseLightState)}')
 
     # Define the light state modifications for each room
     roomLightModificationsDict = {
@@ -285,7 +331,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
         else:
             liteHouseLightState &= light_off_mask
 
-    print("Light State AFTER change:", bin(liteHouseLightState))
+    db1.insert_debug_logging_table(f'Light State AFTER click: " {bin(liteHouseLightState)}')
 
     if houseType == GC.LITE_HOUSE_SOURCE:
 
@@ -333,7 +379,9 @@ def draw_light_highlight(ii, isLightOn, roomName):
         """
         pass
     else:
-        print('INVALID HOUSE TYPE')
+        db1.insert_error_logging_table(f'ERROR: Invalid House Type - Light status images was not updated / displayed')
+
+
         
 
 def draw_signin_with_google_button():
@@ -360,22 +408,24 @@ def start_api() -> int:
 
 if __name__ in {"__main__", "__mp_main__"}:
     darkMode.disable()
-    
+
     db1 = HouseDatabase()
 
-    #apiBackgrounfProcessCode = start_api()
+    if __name__ == "__main__":
+        # Outgoing API connection should only run once, on single port, in a single threaded main function
+        apiBackgroundProcessCode = start_api()
 
     # Incoming APIs
     try:
         config = dotenv_values()
     except KeyError:
-        pass    
+        db1.insert_error_logging_table(GC.USER_TABLE, "ERROR: Could not find .ENV file")
     finally:
         url = config['SUPABASE_URL']
         key = config['SUPABASE_KEY']
         supabase: Client = create_client(url, key)
-        
-        pageKite = PageKiteAPI('litehouse.pagekite.me', config)
+
+        pageKite = PageKiteAPI('litehouse.pagekite.me', config, db1)
         #serveApp = PageKiteStartUp(homeName)
 
         # Establish SSH connection with UniFi PoE Ethernet Switch
@@ -385,8 +435,7 @@ if __name__ in {"__main__", "__mp_main__"}:
 
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            # Auto find IP address of switch using MAC Addresses d8:b3:70:1e:27:18???
-            ssh.connect('192.168.100.160', username=unifiSshUserName, password=unifiSshpw)
+            ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
 
     
         
@@ -463,7 +512,7 @@ if __name__ in {"__main__", "__mp_main__"}:
             with ui.element('q-tab-panel').props(f'name={tabNames[0]}').classes('w-full'):
                 with ui.grid(columns=1):
                     ui.label(f'Click on image to toggle {tabNames[0]}').tailwind('mx-auto text-2xl')
-                    ii = ui.interactive_image(houseType, on_mouse=determine_room_mouse_handler, events=['mousedown'], cross=True)
+                    ii = ui.interactive_image(houseType, on_mouse=determine_room_light_mouse_handler, events=['mousedown'], cross=True)
                     
             with ui.element('q-tab-panel').props(f'name={tabNames[1]}').classes('w-full'):
                 with ui.grid(columns=1):
@@ -485,5 +534,5 @@ if __name__ in {"__main__", "__mp_main__"}:
         ui.run(native=GC.RUN_ON_NATIVE_OS, port=GC.LOCAL_HOST_PORT_FOR_GUI)
         
     except KeyboardInterrupt:
-        command = ['kill', '-9', str(apiBackgrounfProcessCode)]
+        command = ['kill', '-9', str(apiBackgroundProcessCode)]
         subprocess.call(command)
