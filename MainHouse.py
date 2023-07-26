@@ -317,10 +317,6 @@ def determine_room_light_mouse_handler(e: MouseEventArguments):
     
     db1.update_light_state_table(liteHouseLightState)
     
-                output = stdout.read().decode()
-                print(output)
-
-            draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
 
     if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
@@ -331,7 +327,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
     global liteHouseLightState
     global lustronLightState
 
-    db1.insert_debug_logging_table(f'Light State BEFORE click: " {bin(liteHouseLightState)}')
+    #db1.insert_debug_logging_table(f'Light State BEFORE click: " {bin(liteHouseLightState)}')
 
     # Define the light state modifications for each room
     roomLightModificationsDict = {
@@ -350,7 +346,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
         else:
             liteHouseLightState &= light_off_mask
 
-    db1.insert_debug_logging_table(f'Light State AFTER click: " {bin(liteHouseLightState)}')
+    #db1.insert_debug_logging_table(f'Light State AFTER click: " {bin(liteHouseLightState)}')
 
     if houseType == GC.LITE_HOUSE_SOURCE:
 
@@ -444,7 +440,7 @@ if __name__ in {"__main__", "__mp_main__"}:
         key = config['SUPABASE_KEY']
         supabase: Client = create_client(url, key)
 
-        pageKite = PageKiteAPI('litehouse.pagekite.me', config, db1)
+        #pageKite = PageKiteAPI('litehouse.pagekite.me', config, db1)
         #serveApp = PageKiteStartUp(homeName)
 
         # Establish SSH connection with UniFi PoE Ethernet Switch
@@ -454,7 +450,7 @@ if __name__ in {"__main__", "__mp_main__"}:
 
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect('192.168.3.2', username=unifiSshUserName, password=unifiSshpw)
+            ssh.connect('192.168.100.160', username=unifiSshUserName, password=unifiSshpw)
 
     
         
