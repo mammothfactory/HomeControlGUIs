@@ -226,11 +226,23 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             isMasterBedroomLightsOn = not isMasterBedroomLightsOn
             if isMasterBedroomLightsOn:
                 ui.notify(message='Please wait turning Master Bedroom lights ON')
+
+		# Telnet command
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                print(stdout.read().decode())
+
             else:
                 ui.notify(message='Master Bedroom lights OFF')
 
+                # Telnet command
+                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                output = stdout.read().decode()
+                print(output)
+
             draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
-    
+
     for areaIndex in range(GC.MAX_AREA_INDEX_MASTER_BATHROOM):
         if GC.MASTER_BATHROOM_X[areaIndex] <= e.image_x <= GC.MASTER_BATHROOM_X[areaIndex] + GC.MASTER_BATHROOM_X_WIDTH[areaIndex] and \
            GC.MASTER_BATHROOM_Y[areaIndex] <= e.image_y <= GC.MASTER_BATHROOM_Y[areaIndex] + GC.MASTER_BATHROOM_Y_HEIGHT[areaIndex]:
@@ -239,24 +251,23 @@ def determine_room_mouse_handler(e: MouseEventArguments):
             ismasterBathroomLightsOn = not ismasterBathroomLightsOn
             if ismasterBathroomLightsOn:
                 ui.notify(message='Please wait turning Bathroom lights ON')
-                
+
                 # Telnet command
                 telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
                 stdin, stdout, stderr = ssh.exec_command(telnet_command)
                 print(stdout.read().decode())
-                
+
             else:
                 ui.notify(message='Bathroom lights OFF')
+
                 # Telnet command
                 telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-
-                # Execute the command
                 stdin, stdout, stderr = ssh.exec_command(telnet_command)
                 output = stdout.read().decode()
                 print(output)
 
             draw_light_highlight(ii, ismasterBathroomLightsOn, GC.MASTER_BATHROOM)
-    
+
     if not areaFound:
         print("Clicked outside Master Bedroom and Bathroom areas")
         ui.notify(f'{e.type} at ({e.image_x:.1f}, {e.image_y:.1f})')
