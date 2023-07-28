@@ -35,6 +35,8 @@ import HouseAPI as API
 from nicegui import app, ui
 from nicegui.events import MouseEventArguments
 
+DEBUG_STATEMENTS_ON = True
+
 try:  # Importing externally developed 3rd party modules / libraries
 
     # Create directory and URL for local storage of images
@@ -46,6 +48,8 @@ try:  # Importing externally developed 3rd party modules / libraries
         app.add_static_files('/static/videos', GC.LINUX_CODE_DIRECTORY + '/static/videos')
     elif sys.platform.startswith('win'):
         print("WARNING: Running MainHouse.py server code on Windows OS is NOT fully supported")
+        app.add_static_files('/static/images', GC.WINDOWS_CODE_DIRECTORY + '/static/images')
+        app.add_static_files('/static/videos', GC.WINDOWS_CODE_DIRECTORY + '/static/videos')
     else:
         print("ERROR: Running on an unknown operating system")
         quit()
@@ -95,7 +99,10 @@ finally:
 
     isMasterBedroomLightsOn = False
     isMasterBathroomLightsOn = False
-    isAreaLightOn = [False, False, False, isMasterBedroomLightsOn, isMasterBathroomLightsOn]    #TODO Add more areas (e.g. rooms, closets, porches) for other Litehouse and Lustron rooms
+    isKitchenLightsOn = False
+    isLivingRoomLightsOn = False
+    isHallwayLightsOn = False
+    isAreaLightOn = [isHallwayLightsOn, isLivingRoomLightsOn, isKitchenLightsOn, isMasterBedroomLightsOn, isMasterBathroomLightsOn]    #TODO Add more areas (e.g. rooms, closets, porches) for other Litehouse and Lustron rooms
     liteHouseLightState = 0b0000_0000
     
     isMasterBathroomFanOn = False
@@ -249,6 +256,9 @@ def determine_room_fan_mouse_handler(e: MouseEventArguments):
 def determine_room_light_mouse_handler(e: MouseEventArguments):
     global isMasterBedroomLightsOn
     global isMasterBathroomLightsOn
+    global isKitchenLightsOn
+    global isLivingRoomLightsOn
+    global isHallwayLightsOn
 
     areaFound = False
 
@@ -261,29 +271,21 @@ def determine_room_light_mouse_handler(e: MouseEventArguments):
             if isMasterBedroomLightsOn:
                 ui.notify(message='Please wait turning Master Bedroom lights ON')
                 
-                # Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                print(stdout.read().decode())
-
-		# Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                print(stdout.read().decode())
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
 
             else:
                 ui.notify(message='Master Bedroom lights OFF')
                 
-                # Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                print(stdout.read().decode())
-
-                # Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                output = stdout.read().decode()
-                print(output)
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BEDROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    output = stdout.read().decode()
+                    print(output)
 
             draw_light_highlight(ii, isMasterBedroomLightsOn, GC.MASTER_BEDROOM)
             
@@ -298,22 +300,102 @@ def determine_room_light_mouse_handler(e: MouseEventArguments):
             if isMasterBathroomLightsOn:
                 ui.notify(message='Please wait turning Bathroom lights ON')
 
-                # Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                print(stdout.read().decode())
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
 
             else:
                 ui.notify(message='Bathroom lights OFF')
                 
-
-                # Telnet command
-                telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
-                stdin, stdout, stderr = ssh.exec_command(telnet_command)
-                print(stdout.read().decode())
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.MASTER_BATHROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
 
             draw_light_highlight(ii, isMasterBathroomLightsOn, GC.MASTER_BATHROOM)
     
+    
+    for areaIndex in range(GC.MAX_AREA_INDEX_KITCHEN):
+        if GC.KITCHEN_X[areaIndex] <= e.image_x <= GC.KITCHEN_X[areaIndex] + GC.KITCHEN_X_WIDTH[areaIndex] and \
+           GC.KITCHEN_Y[areaIndex] <= e.image_y <= GC.KITCHEN_Y[areaIndex] + GC.KITCHEN_Y_HEIGHT[areaIndex]:
+
+            areaFound = True
+            isKitchenLightsOn = not isKitchenLightsOn
+            if isKitchenLightsOn:
+                ui.notify(message='Please wait turning Kitchen lights ON')
+
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.KITCHEN_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            else:
+                ui.notify(message='Kitchen lights OFF')
+                
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.KITCHEN_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            draw_light_highlight(ii, isKitchenLightsOn, GC.KITCHEN)
+    
+    
+    for areaIndex in range(GC.MAX_AREA_INDEX_LIVINGROOM):
+        if GC.LIVINGROOM_X[areaIndex] <= e.image_x <= GC.LIVINGROOM_X[areaIndex] + GC.LIVINGROOM_X_WIDTH[areaIndex] and \
+           GC.LIVINGROOM_Y[areaIndex] <= e.image_y <= GC.LIVINGROOM_Y[areaIndex] + GC.LIVINGROOM_Y_HEIGHT[areaIndex]:
+
+            areaFound = True
+            isLivingRoomLightsOn = not isLivingRoomLightsOn
+            if isLivingRoomLightsOn:
+                ui.notify(message='Please wait turning Living Room lights ON')
+
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.LIVINGROOM_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            else:
+                ui.notify(message='Kitchen lights OFF')
+                
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.LIVINGROOM_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            draw_light_highlight(ii, isLivingRoomLightsOn, GC.LIVINGROOM)
+    
+    for areaIndex in range(GC.MAX_AREA_INDEX_HALLWAY):
+        if GC.HALLWAY_X[areaIndex] <= e.image_x <= GC.HALLWAY_X[areaIndex] + GC.HALLWAY_X_WIDTH[areaIndex] and \
+           GC.HALLWAY_Y[areaIndex] <= e.image_y <= GC.HALLWAY_Y[areaIndex] + GC.HALLWAY_Y_HEIGHT[areaIndex]:
+
+            areaFound = True
+            isHallwayLightsOn = not isHallwayLightsOn
+            if isHallwayLightsOn:
+                ui.notify(message='Please wait turning Hallway lights ON')
+
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.HALLWAY_SWITCH_PORT}\'" ; echo "poe opmode auto" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            else:
+                ui.notify(message='Kitchen lights OFF')
+                
+                if GC.SWITH_HARDWARE_CONNECTED:
+                    # Telnet command
+                    telnet_command = f'(echo "enable" ; echo "configure" ; echo "interface \'0/{GC.HALLWAY_SWITCH_PORT}\'" ; echo "poe opmode shutdown" ; echo "exit" ; echo "exit" ; echo "exit") | telnet localhost 23 ; exit;'
+                    stdin, stdout, stderr = ssh.exec_command(telnet_command)
+                    print(stdout.read().decode())
+
+            draw_light_highlight(ii, isHallwayLightsOn, GC.HALLWAY)
     
     db1.update_light_state_table(liteHouseLightState)
     
@@ -327,16 +409,17 @@ def draw_light_highlight(ii, isLightOn, roomName):
     global liteHouseLightState
     global lustronLightState
 
-    #db1.insert_debug_logging_table(f'Light State BEFORE click: " {bin(liteHouseLightState)}')
+    if DEBUG_STATEMENTS_ON: print(f'Light State BEFORE click: {bin(liteHouseLightState)}')
 
     # Define the light state modifications for each room
     roomLightModificationsDict = {
         GC.MASTER_BEDROOM: (0b0000_0001, 0b1111_1110),
         GC.MASTER_BATHROOM: (0b0000_0010, 0b1111_1101),
-        GC.BATHROOM_2: (0b0000_0011, 0b1111_1100),
-        GC.BEDROOM_2: (0b0000_0100, 0b1111_1011),
-        GC.BEDROOM_3: (0b0000_0101, 0b1111_1010),
+        GC.KITCHEN: (0b0000_0100, 0b1111_1011),
+        GC.LIVINGROOM: (0b0000_1000, 0b1111_0111),
+        GC.HALLWAY: (0b0001_0000, 0b1110_1111),
         # Add more rooms and their corresponding modifications as needed
+        GC.BEDROOM_2: (0b0000_0101, 0b1111_1010), 
     }
 
     if roomName in roomLightModificationsDict:
@@ -346,7 +429,7 @@ def draw_light_highlight(ii, isLightOn, roomName):
         else:
             liteHouseLightState &= light_off_mask
 
-    #db1.insert_debug_logging_table(f'Light State AFTER click: " {bin(liteHouseLightState)}')
+    if DEBUG_STATEMENTS_ON: print(f'Light State AFTER click: " {bin(liteHouseLightState)}')
 
     if houseType == GC.LITE_HOUSE_SOURCE:
 
