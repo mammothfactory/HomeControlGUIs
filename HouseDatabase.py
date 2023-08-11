@@ -23,14 +23,18 @@ import bcrypt
 # Internal modules
 import GlobalConstants as GC
 
-USERNAME_COLUMN_NUMBER = 1
-PASSWORD_COLUMN_NUMBER = 2
-SALT_COLUMN_NUMBER = 3
-FIRST_ROW_ID = 1
+
 
 class HouseDatabase:
     """ Store non user identifable data in local salted hash SQLite database
     """
+
+    USERNAME_COLUMN_NUMBER = 1
+    PASSWORD_COLUMN_NUMBER = 2
+    SALT_COLUMN_NUMBER = 3
+    FIRST_ROW_ID = 1
+    BINARY_STATE_COLUMN_NUMBER = 1
+    MERMAID_STRING_COLUMN_NUMBER = 1
 
     def __init__(self):
         """ Constructor to initialize an HouseDatabase object
@@ -44,11 +48,15 @@ class HouseDatabase:
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS LightStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS NetworkStateTable (id INTEGER PRIMARY KEY, mermaidString TEXT)''')
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS DoorStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
-
+        
+        # Create debuging logg
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS DebugLoggingTable (id INTEGER PRIMARY KEY, variable TEXT)''')
+        
         # Initialize hardware states
         self.cursor.execute("INSERT INTO LightStateTable (binaryState) VALUES (?)", (0,))
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (GC.STATIC_DEFAULT_NETWORK,))
         self.cursor.execute("INSERT INTO DoorStateTable (binaryState) VALUES (?)", (0,))
+        
         self.conn.commit()
 
 
@@ -100,8 +108,7 @@ class HouseDatabase:
         Args:
             currentLightState (Integer): Current binary light state (on or off) of all lights in the house but stored as Integer
         """
-        self.cursor.execute("UPDATE LightStateTable SET binaryState = ? WHERE id = ?", (currentLightState, FIRST_ROW_ID))
-        self.cursor.execute("DELETE FROM LightStateTable WHERE id = ?", (FIRST_ROW_ID+1,))
+        self.cursor.execute("UPDATE LightStateTable SET binaryState = ? WHERE id = ?", (currentLightState, HouseDatabase.FIRST_ROW_ID))
         self.commit_changes()
 
 
@@ -114,10 +121,14 @@ class HouseDatabase:
         Args:
             currentDoorState (Integer): Current binary door state (LOCKED or UNLOCKED) of all doors in the house but stored as Integer
         """
-        self.cursor.execute("UPDATE DoorStateTable SET binaryState = ? WHERE id = ?", (currentDoorState, FIRST_ROW_ID))
-        self.cursor.execute("DELETE FROM DoorStateTable WHERE id = ?", (FIRST_ROW_ID+1,))
+        self.cursor.execute("UPDATE DoorStateTable SET binaryState = ? WHERE id = ?", (currentDoorState, HouseDatabase.FIRST_ROW_ID))
         self.commit_changes()
 
+
+    def insert_debug_logging_table(self, debugVariable: str):
+        self.cursor.execute("INSERT INTO DebugLoggingTable (variable) VALUES (?)", (debugVariable,))
+        self.commit_changes()
+        
 
     def insert_users_table(self, username: str, pw: str):
         """ Insert username, hashed password, and hash salt into the User Table if username is unqiue, otherwise update password
@@ -168,11 +179,11 @@ class HouseDatabase:
         usersTableList =  self.query_table("UsersTable")
         isUserFound = False
         for user in usersTableList:
-            if user[USERNAME_COLUMN_NUMBER] == enteredUsername:
+            if user[HouseDatabase.USERNAME_COLUMN_NUMBER] == enteredUsername:
                 isUserFound = True
 
-                storedHashedPassword = user[PASSWORD_COLUMN_NUMBER]
-                storedSalt = user[SALT_COLUMN_NUMBER]
+                storedHashedPassword = user[HouseDatabase.PASSWORD_COLUMN_NUMBER]
+                storedSalt = user[HouseDatabase.SALT_COLUMN_NUMBER]
                 hashedPasssword = bcrypt.hashpw(enteredPassword.encode('utf-8'), storedSalt)
 
                 if hashedPasssword == storedHashedPassword:
@@ -188,7 +199,7 @@ if __name__ == "__main__":
 
     db = HouseDatabase()
 
-    db.update_light_state_table(13)
+    db.update_light_state_table(4)
     db.update_door_state_table(2)
     db.insert_network_state_table(GC.STATIC_DEFAULT_NETWORK)
 
