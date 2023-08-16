@@ -138,7 +138,7 @@ def toggle_dark_mode():
 
 def login_user():
     global userLoggedIn 
-
+    # https://github.com/zauberzeug/nicegui/tree/main/examples/nginx_subpath/
     userLoggedIn = not userLoggedIn
     userDataForm.visible = userLoggedIn
     ui.update(userDataForm)
@@ -168,7 +168,7 @@ def send_otp_password(phoneNumber: str, invalidPhoneNumberLabel: ui.label, enter
         try:
             response = supabase.auth.sign_in_with_otp({"phone": countryCodePhoneNumber,})
             print(f'Supabase called to send SMS: {response}')
-            
+
         finally:
             enterPhoneNumberGrid.visible = False
             signInGrid.visible = True
@@ -180,7 +180,8 @@ def sign_in(sanitizedOtpCode, invalidOtpLabel, signInGrid):
     print(f'ATTEMPTING SIGN IN WITH username: {username} with {sanitizedOtpCode}')
 
     validUser = supabase.auth.verify_otp({"phone": username, "token": str(sanitizedOtpCode), "type": 'sms'})
-    print(f'Supabase called to verify OTP: USER = {validUser}')
+    db1.insert_debug_logging_table(f'Supabase called to verify OTP: USER = {validUser}') 
+
     if validUser.user.aud == 'authenticated':
         db1.insert_users_table(username, sanitizedOtpCode)
 
@@ -479,29 +480,39 @@ def draw_light_highlight(ii, isLightOn, roomName):
     else:
         db1.insert_error_logging_table(f'ERROR: Invalid House Type - Light status images was not updated / displayed')
 
-
-        
-
-def draw_signin_with_google_button():
-    pass
-
-def draw_signin_with_apple_button():
-    #https://developer.apple.com/documentation/sign_in_with_apple/displaying_sign_in_with_apple_buttons_on_the_webn
-    pass
-
-
-
 def start_api() -> int:
     """Use UVicorn a fast ASGI (Asynchronous Server Gateway Interface) to running auto refreshing API
     """
     
-    command = ['uvicorn', 'HouseAPI:app', '--reload', '--port', API.API_PORT]
+    command = ['uvicorn', 'HouseAPI:app', '--host', '0.0.0.0', '--reload', '--port', API.API_PORT]
     backgroundApiProcess = subprocess.Popen(command)
     processCode = backgroundApiProcess.pid
     print(f'PID = {processCode}')
     sleep(3)       # Delay to give API server kill to start up
     
     return int(processCode)
+
+async def show_location():
+    response = await ui.run_javascript('''
+        return await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+            } else {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        });
+                    },
+                    () => {
+                        reject(new Error('Unable to retrieve your location'));
+                    }
+                );
+            }
+        });
+    ''', timeout=5.0)
+    return response["latitude"], response["longitude"] #ui.notify(f'Your location is {response["latitude"]}, {response["longitude"]}')
 
 
 if __name__ in {"__main__", "__mp_main__"}:

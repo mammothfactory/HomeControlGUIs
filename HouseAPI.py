@@ -25,6 +25,8 @@ async def lights():
     if len(row) > 0:
         return {'status': 'OK', 'data': row[0][HouseDatabase.BINARY_STATE_COLUMN_NUMBER]}
     else:
+        # https://www.youtube.com/watch?v=SORiTsvnU28&list=PLwxr8ZjHCOTH5hEwVADXjfKFtrp5-Fi4V&index=15
+        # raise HTTPException(status_code=404, detail=f'Light state') 
         return {'status': 'OK', 'data': 0b0000_0000}
 
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/418
