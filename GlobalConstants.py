@@ -24,7 +24,7 @@ LUSTRON = 'LUSTRON'
 RUN_ON_NATIVE_OS = False
 TUNNEL_TO_INTERNET = True
 
-MAC_CODE_DIRECTORY   = '/Users/mars/MammothGithub/LitehouseGUIs'
+MAC_CODE_DIRECTORY   = '/Users/venus/GitRepos/HomeControlGUIs' #'/Users/mars/MammothGithub/LitehouseGUIs'
 LINUX_CODE_DIRECTORY = '/home/casaos/HomeControlGUIs'
 WINDOWS_CODE_DIRECTORY = 'C:/Users/Framecad/HomeControlGUIs'
 
@@ -112,6 +112,7 @@ MAX_AREA_INDEX_BATHROOM_2 = 1
 BATHROOM_2_RECT_AREAS = [[BATHROOM_2_X[0], BATHROOM_2_Y[0], BATHROOM_2_X_WIDTH[0], BATHROOM_2_Y_HEIGHT[0]],]
 
 # Interactive image filenames for square blur (aka V1) yellow light overlay
+MAX_LIGHT_BIT_LENGTH = 8
 LITE_HOUSE_SOURCE = 'static/images/LiteHouseV1_00000.png'
 LITE_HOUSE_SOURCE00000001 = 'static/images/LiteHouseV1_00001.png'
 LITE_HOUSE_SOURCE00000010 = 'static/images/LiteHouseV1_00010.png'
@@ -148,6 +149,19 @@ LITE_HOUSE_SOURCE00011111 = 'static/images/LiteHouseV1_11111.png'
 
 LUSTRON_SOURCE = 'static/images/LustronV1_00000000.png'
 
+# Fan and Light Level CONSTANTS
+OFF = 0.000
+LOW = 33.33
+MEDIUM = 66.66
+HIGH = 100.0
+
+ON_STATE = 1
+OFF_STATE = 0
+
+MAX_FAN_BIT_LENGTH = 8 
+MAX_NUM_OF_DOORS = 2
+DOOR_LOCKED = False
+DOOR_UNLOCKED = True
 
 STATIC_DEFAULT_NETWORK = '''
                 graph LR;

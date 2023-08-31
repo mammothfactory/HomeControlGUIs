@@ -17,47 +17,79 @@ __version__    = "0.1.0"
 # Standard Python libraries
 import sqlite3
 
-# 3rd paarty libraries
+# 3rd party libraries
 import bcrypt
-
+# Load environment variables for usernames, passwords, & API keys
+# https://pypi.org/project/python-dotenv/
+from dotenv import dotenv_values 
+    
 # Internal modules
 import GlobalConstants as GC
-
-
 
 class HouseDatabase:
     """ Store non user identifable data in local salted hash SQLite database
     """
-
     USERNAME_COLUMN_NUMBER = 1
     PASSWORD_COLUMN_NUMBER = 2
     SALT_COLUMN_NUMBER = 3
-    FIRST_ROW_ID = 1
-    BINARY_STATE_COLUMN_NUMBER = 1
+    STATE_COLUMN_NUMBER = 1
+    LEVEL_COLUMN_NUMBER = 1
     MERMAID_STRING_COLUMN_NUMBER = 1
 
-    def __init__(self):
-        """ Constructor to initialize an HouseDatabase object
+    def __init__(self, dbName='House.db'):
+        """ Constructor to initialize a HouseDatabase object
+            Call db = HouseDatabase('Test.db') for testing
+        
+        Args:
+            dbName (String): Filename of SQlite database, defaults to 'House.db'   
         """
-        # Connect to the database (create if it doesn't exist)
-        self.conn = sqlite3.connect('House.db')
+        # Connect to the database
+        self.conn = sqlite3.connect(dbName)
         self.cursor = self.conn.cursor()
+        
+        # Check if tables exist (using UserTable as placeholder for all tables) 
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='UsersTable'")
+        if not self.cursor.fetchone():
+            
+            # Create four tables in House.db for user login and hardware state storage
+            self.cursor.execute('''CREATE TABLE UsersTable (id INTEGER PRIMARY KEY, username TEXT, password TEXT, salt TEXT)''')
+            self.cursor.execute('''CREATE TABLE LightStateTable (id INTEGER PRIMARY KEY, currentState INTEGER)''')
+            self.cursor.execute('''CREATE TABLE LightLevelTable (id INTEGER PRIMARY KEY, currentLevel REAL)''')
+            self.cursor.execute('''CREATE TABLE FanStateTable (id INTEGER PRIMARY KEY, currentState INTEGER)''')
+            self.cursor.execute('''CREATE TABLE FanLevelTable (id INTEGER PRIMARY KEY, currentLevel REAL)''')
+            self.cursor.execute('''CREATE TABLE DoorStateTable (id INTEGER PRIMARY KEY, currentState INTEGER)''')
+            self.cursor.execute('''CREATE TABLE NetworkStateTable (id INTEGER PRIMARY KEY, mermaidString TEXT)''')
 
-        # Create four tables in House.db for user login and hardware state data storage
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS UsersTable (id INTEGER PRIMARY KEY, username TEXT, password TEXT, salt TEXT)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS LightStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS NetworkStateTable (id INTEGER PRIMARY KEY, mermaidString TEXT)''')
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS DoorStateTable (id INTEGER PRIMARY KEY, binaryState INTEGER)''')
+            self.init_tables()
         
-        # Create debuging logg
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS DebugLoggingTable (id INTEGER PRIMARY KEY, variable TEXT)''')
+            # Create debuging logg
+            self.cursor.execute('''CREATE TABLE DebugLoggingTable (id INTEGER PRIMARY KEY, variable TEXT)''')
+            
+        self.commit_changes()
+    
+    
+    def init_tables(self):
+        """ Initialize database for the hardware installed  
+        """
+        config = dotenv_values()
+        username = config['DATABASE_ADMIN_USERNAME']
+        password = config['DATABASE_ADMIN_PASSWORD']
+        self.insert_users_table(username, password)
         
-        # Initialize hardware states
-        self.cursor.execute("INSERT INTO LightStateTable (binaryState) VALUES (?)", (0,))
+        for id in range(GC.MAX_LIGHT_BIT_LENGTH):
+            self.cursor.execute("INSERT INTO LightStateTable (currentState) VALUES (?)", (GC.ON_STATE,))
+            self.cursor.execute("INSERT INTO LightLevelTable (currentLevel) VALUES (?)", (GC.OFF,))
+            
+        for id in range(GC.MAX_FAN_BIT_LENGTH):
+            self.cursor.execute("INSERT INTO FanStateTable (currentState) VALUES (?)", (GC.OFF_STATE,))
+            self.cursor.execute("INSERT INTO FanLevelTable (currentLevel) VALUES (?)", (GC.OFF,))           
+            
+        for id in range(GC.MAX_NUM_OF_DOORS):
+            self.cursor.execute("INSERT INTO DoorStateTable (currentState) VALUES (?)", (GC.DOOR_UNLOCKED,))
+            
         self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (GC.STATIC_DEFAULT_NETWORK,))
-        self.cursor.execute("INSERT INTO DoorStateTable (binaryState) VALUES (?)", (0,))
         
-        self.conn.commit()
+        self.commit_changes()
 
 
     def commit_changes(self):
@@ -72,7 +104,7 @@ class HouseDatabase:
         self.conn.close()
 
 
-    def query_table(self, tableName: str):
+    def query_table(self, tableName: str) -> tuple:
         """ Return every row of a table from a database
 
         Args:
@@ -84,49 +116,116 @@ class HouseDatabase:
         sqlStatement = f"SELECT * FROM {tableName}"
         self.cursor.execute(sqlStatement)
 
+        foundRow = True
         result = self.cursor.fetchall()
+        if len(result) == 0:
+            foundRow = False
 
-        return result
+        return result, foundRow
 
 
-    def insert_network_state_table(self, currentNetworkState: str):
-        """ Insert data into NetworkStateTable of database
-
+    def update_light_state_table(self, newLightState: int):
+        """ Update every row of LightStateTable in database and backfill in ZERO's start at Most Significant Bit
+            0  = 0b0000_0000 = All lights OFF
+            15 = 0b0000_1111 = Four lights ON and one light OFF in house with 5 total lights
+            30 = 0b0001_1110 = Four lights ON and one light OFF in house with 5 total lights
+            
         Args:
-            currentNetworkState (String): Complete network node configuration in NiceGUI Meraid format https://mermaid.js.org
+            newLightState (Integer): New binary light state (on or off) of all lights in the house (e.g. 7 = 0b000_0111)
         """
-        self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (currentNetworkState,))
+        position = 0  
+        if newLightState == 0 or newLightState >= 2**GC.MAX_LIGHT_BIT_LENGTH:
+            self.cursor.execute("UPDATE LightStateTable SET currentState = 0")
+        else:
+            # Start with Least Significant Bit (LSB) and right shift currentLightState integer one bit until only zero bits are left
+            shiftingLightState = newLightState
+            while shiftingLightState:
+                bit = shiftingLightState & 1
+                position = position + 1
+                self.cursor.execute("UPDATE LightStateTable SET currentState = ? WHERE id = ?", (bit, position))
+                shiftingLightState >>= 1
+
+            # Back fill in rest on database ID's with ZERO'S if currentLightState < 256 = 2^GC.MAX_LIGHT_BIT_LENGTH = 2^8
+            if position < GC.MAX_LIGHT_BIT_LENGTH:
+                for id in range(position+1, GC.MAX_LIGHT_BIT_LENGTH+1):
+                    self.cursor.execute("UPDATE LightStateTable SET currentState = ? WHERE id = ?", (0, id))
+            
         self.commit_changes()
 
 
-    def update_light_state_table(self, currentLightState: int):
-        """ Updates the first row of the LightStateTable in database and delete new row created everytime HouseDatabase.py is run
-            0 = 0b0 = All lights OFF
-            15 = 0b1111 = Four lights ON
-            30 = 0b11110 = Four lights ON and one light OFF
+    def update_light_level_table(self, id: int, newLightLevel: float):
+        """ Update LightLevelTable in database using a GlobalConstants.py CONSTANT 
             
         Args:
-            currentLightState (Integer): Current binary light state (on or off) of all lights in the house but stored as Integer
+            id (Integer): Primary key in LightLevelTable to update 
+            newLightevel (Float): New light brightness level (OFF, LOW, MEDIUM, HIGH) for a single light
         """
-        self.cursor.execute("UPDATE LightStateTable SET binaryState = ? WHERE id = ?", (currentLightState, HouseDatabase.FIRST_ROW_ID))
+        self.cursor.execute("UPDATE LightLevelTable SET currentLevel = ? WHERE id = ?", (newLightLevel, id))
         self.commit_changes()
 
 
-    def update_door_state_table(self, currentDoorState: int):
-        """ Updates the first row of the DoorStateTable in database and delete new row created everytime HouseDatabase.py is run
-            0 = 0b0 = All doors LOCKED
-            1 = 0b1 = One door LOCKED lights ON
-            2 = 0b10 = One door LOCKED and one door UNLOCKED
+    def update_fan_state_table(self, newwFanState: int):
+        """ Update every row of FanStateTable in database and backfill in ZERO's start at Most Significant Bit
+            0  = 0b0000_0000 = All fans OFF
+            15 = 0b0000_1111 = Four lights ON and four light OFF in house with 8 total fans
+            30 = 0b1111_1110 = Seven lights ON and one light OFF in house with 8 total fans
             
         Args:
-            currentDoorState (Integer): Current binary door state (LOCKED or UNLOCKED) of all doors in the house but stored as Integer
+            newLightState (Integer): New binary fan state (on or off) of all fans in the house (e.g. 8 = 0b000_1000)
         """
-        self.cursor.execute("UPDATE DoorStateTable SET binaryState = ? WHERE id = ?", (currentDoorState, HouseDatabase.FIRST_ROW_ID))
+        position = 0  
+        if newwFanState == 0 or newwFanState >= 2**GC.MAX_FAN_BIT_LENGTH:
+            self.cursor.execute("UPDATE FanStateTable SET currentState = 0")
+        else:
+            # Start with Least Significant Bit (LSB) and right shift newwFanState integer one bit until only zero bits are left
+            shiftingFanState = newwFanState
+            while shiftingFanState:
+                bit = shiftingFanState & 1
+                position = position + 1
+                self.cursor.execute("UPDATE FanStateTable SET currentState = ? WHERE id = ?", (bit, position))
+                shiftingFanState >>= 1
+
+            # Back fill in rest on database ID's with ZERO'S if currentLightState < 256 = 2^GC.MAX_LIGHT_BIT_LENGTH = 2^8
+            if position < GC.MAX_FAN_BIT_LENGTH:
+                for id in range(position+1, GC.MAX_FAN_BIT_LENGTH+1):
+                    self.cursor.execute("UPDATE FanStateTable SET currentState = ? WHERE id = ?", (0, id))
+            
+        self.commit_changes()
+
+
+    def update_fan_level_table(self, id: int, newFanLevel: float):    
+        """ Update FanLevelTable in database using a GlobalConstants.py CONSTANT 
+            
+        Args:
+            id (Integer): Primary key in FanLevelTable to update 
+            newFanLevel (Float): New fan rotation speed (OFF, LOW, MED, HIGH) for a single fan
+        """
+        self.cursor.execute("UPDATE FanLevelTable SET currentLevel = ? WHERE id = ?", (newFanLevel, id))
+        self.commit_changes()
+
+
+    def update_door_state_table(self, id: int, newDoorState: bool):
+        """ Update DoorStateTable in database using a GlobalConstants.py CONSTANT
+            
+        Args:
+            newDoorState (Boolean): New door state (DOOR_UNLOCKED or DOOR_LOCKED) for a single door
+        """
+        self.cursor.execute("UPDATE DoorStateTable SET currentState = ? WHERE id = ?", (newDoorState, id))
         self.commit_changes()
 
 
     def insert_debug_logging_table(self, debugVariable: str):
         self.cursor.execute("INSERT INTO DebugLoggingTable (variable) VALUES (?)", (debugVariable,))
+        self.commit_changes()
+        
+    
+    def insert_network_state_table(self, newNetworkState: str):
+        """ Insert data into NetworkStateTable of database
+
+        Args:
+            newNetworkState (String): Complete network node configuration in NiceGUI Meraid format https://mermaid.js.org
+        """
+        self.cursor.execute("INSERT INTO NetworkStateTable (mermaidString) VALUES (?)", (newNetworkState,))
         self.commit_changes()
         
 
@@ -137,12 +236,12 @@ class HouseDatabase:
             username (String): Username to login, which can be either a 10 digit phone number or email address
             pw (String): Password to login, which is NEVER stored as plain text in any database or on a SSD (RAM only)
         """
-        results = self.search_users_table(username)
+        results, foundUser = self.search_users_table(username)
 
         generatedSalt = bcrypt.gensalt()
         hashedPassword = bcrypt.hashpw(str(pw).encode('utf-8'), generatedSalt)
 
-        if len(results) > 0:
+        if foundUser:
             idToUpdate = results[0][0]
             self.cursor.execute("UPDATE UsersTable SET username = ?, password = ?, salt = ? WHERE id = ?", (username, hashedPassword, generatedSalt, idToUpdate))
         else:
@@ -151,19 +250,22 @@ class HouseDatabase:
         self.commit_changes()
 
 
-    def search_users_table(self, searchTerm: str):
+    def search_users_table(self, searchTerm: str) -> tuple:
         """ Search UsersTable table for every occurrence of a string
 
         Args:
             searchTerm (str): _description_
 
         Returns:
-            List: Of Tuples from a UsersTable, where each List item is a row in the table containing the exact search term
+            List: Of Tuples from UsersTable, where each List item is a row in the table containing the exact search term
         """
+        foundUser = False
         self.cursor.execute("SELECT * FROM UsersTable WHERE username LIKE ?", ('%' + searchTerm + '%',))
         results = self.cursor.fetchall()
-
-        return results
+        if len(results) > 0:
+            foundUser = True
+        
+        return results, foundUser
 
 
     def verify_password(self, enteredUsername: str, enteredPassword: str) -> bool:
@@ -176,46 +278,45 @@ class HouseDatabase:
         Returns:
             bool: True if salted hash password in database matches the password entered by the user, False otherwise
         """
-        usersTableList =  self.query_table("UsersTable")
+        usersTableList, foundData =  self.query_table("UsersTable")
         isUserFound = False
         for user in usersTableList:
-            if user[HouseDatabase.USERNAME_COLUMN_NUMBER] == enteredUsername:
-                isUserFound = True
+            if foundData:
+                if user[HouseDatabase.USERNAME_COLUMN_NUMBER] == enteredUsername:
+                    isUserFound = True
 
-                storedHashedPassword = user[HouseDatabase.PASSWORD_COLUMN_NUMBER]
-                storedSalt = user[HouseDatabase.SALT_COLUMN_NUMBER]
-                hashedPasssword = bcrypt.hashpw(enteredPassword.encode('utf-8'), storedSalt)
+                    storedHashedPassword = user[HouseDatabase.PASSWORD_COLUMN_NUMBER]
+                    storedSalt = user[HouseDatabase.SALT_COLUMN_NUMBER]
+                    hashedPasssword = bcrypt.hashpw(enteredPassword.encode('utf-8'), storedSalt)
 
-                if hashedPasssword == storedHashedPassword:
-                    return True
+                    if hashedPasssword == storedHashedPassword:
+                        return True
+                    else:
+                        return False
                 else:
-                    return False
-            else:
-                isUserFound = isUserFound or False
+                    isUserFound = isUserFound or False
 
 
 if __name__ == "__main__":
-    print("Testing HouseDatabase.py")
+    print("Testing HouseDatabase.py with asserts")
 
-    db = HouseDatabase()
+    db = HouseDatabase('Test.db')
 
-    db.update_light_state_table(4)
-    db.update_door_state_table(2)
+    db.update_light_state_table(0b1100)
+    db.update_light_level_table(4, GC.MEDIUM)
+    db.update_fan_state_table(0b10111)
+    db.update_fan_level_table(2, GC.LOW)
+    db.update_door_state_table(1, GC.DOOR_LOCKED)
     db.insert_network_state_table(GC.STATIC_DEFAULT_NETWORK)
+    db.insert_debug_logging_table("Testing debug logging")
 
     db.insert_users_table("blazes@mfc.us", "TestPassword")
     db.insert_users_table("blazes@mfc.us", "NewPassword")  # Test that duplicate usernames creates new password
-
-    if db.verify_password("blazes@mfc.us", "NewPassword"):
-        print("Salted hash password matches username")
-
-    if not db.verify_password("blazes@mfc.us", "Bad"):
-        print("As expected the password did NOT match username")
-
-    databaseSearch = db.search_users_table("blazes@mfc.us")
-    if len(databaseSearch) > 0:
-        print("Found username in database")
-
+    databaseSearch, foundUser = db.search_users_table("blazes@mfc.us")
+    
+    assert foundUser, "Search for know username in database failed"
+    assert db.verify_password("blazes@mfc.us", "NewPassword"), "Password salted hashing failed"
+    assert not db.verify_password("blazes@mfc.us", "BadPassword"), "Password salted hashing failed"
 
     db.close_database()
     
