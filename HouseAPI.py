@@ -53,6 +53,11 @@ async def get_light_level(id: int):
     else:
         raise HTTPException(status_code=404, detail=f'ID = {id} primary key does NOT exists is the LightLevelTable in database')
 
+@app.put('/log/')
+async def log(message: str):
+    db.insert_debug_logging_table(message)
+
+
 # Use http://127.0.0.1:8393/docs to send PUT commands
 # Or curl -X PUT http://127.0.0.1:8393/light/level/\?id\=8\&newLightLevel\=0
 @app.put('/light/level/')

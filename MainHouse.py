@@ -433,7 +433,6 @@ def draw_light_highlight(ii, isLightOn, roomName):
     if DEBUG_STATEMENTS_ON: print(f'Light State AFTER click: " {bin(liteHouseLightState)}')
 
     if houseType == GC.LITE_HOUSE_SOURCE:
-
         if liteHouseLightState == 0b0000_0000:   ii.set_source(GC.LITE_HOUSE_SOURCE)
         elif liteHouseLightState == 0b0000_0001: ii.set_source(GC.LITE_HOUSE_SOURCE00000001)
         elif liteHouseLightState == 0b0000_0010: ii.set_source(GC.LITE_HOUSE_SOURCE00000010)
@@ -522,8 +521,9 @@ if __name__ in {"__main__", "__mp_main__"}:
 
     if __name__ == "__main__":
         # Outgoing API connection should only run once, on single port, in a single threaded main function
-        apiBackgroundProcessCode = start_api()
-
+        # apiBackgroundProcessCode = start_api()
+        pass
+    
     # Incoming APIs
     try:
         config = dotenv_values()
